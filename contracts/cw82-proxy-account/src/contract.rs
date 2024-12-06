@@ -17,7 +17,7 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use crate::utils::query_if_registry;
 
-pub const CONTRACT_NAME: &str = "crates:cw82-credential-token-account";
+pub const CONTRACT_NAME: &str = "crates:cw82-proxy-account";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 

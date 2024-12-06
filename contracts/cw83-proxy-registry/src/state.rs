@@ -12,5 +12,5 @@ pub struct CreationCache {
 pub static CREATION_CACHE   : Item<CreationCache<>> = Item::new("cc");
 pub static REGISTRY_PARAMS  : Item<RegistryParams> = Item::new("p");
 
-pub static ACCOUNTS         :  Map<CredentialId, Vec<String>>  = Map::new("a");  
+pub static ACCOUNTS         :  Map<CredentialId, String>  = Map::new("a");  
 pub static CREDENTIALS      :  Map<CredentialId, CredentialId> = Map::new("c");

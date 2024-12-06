@@ -10,13 +10,13 @@ use saa::{CredentialsWrapper, Verifiable};
 
 use crate::{
     error::ContractError,
-    execute::{create_account, migrate_account},
+    execute::{create_account, update_account_data},
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
     query::account_info,
     state::{ACCOUNTS, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS},
 };
 
-pub const CONTRACT_NAME: &str = "crates:cw83-proxy-account-registry";
+pub const CONTRACT_NAME: &str = "crates:cw83-proxy-registry";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
@@ -40,6 +40,7 @@ pub fn instantiate(
 }
 
 
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -47,6 +48,8 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    ensure!(CREATION_CACHE.may_load(deps.storage)?.is_none(), ContractError::Unauthorized {});
+
     match msg {
         ExecuteMsg::CreateAccount(create) => create_account(
             deps,
@@ -57,10 +60,10 @@ pub fn execute(
             create.msg.account_data,
             create.msg.actions,
         ),
-        ExecuteMsg::MigrateAccount {
-            new_code_id,
-            msg,
-        } => migrate_account(deps, info.sender,  new_code_id, msg),
+        ExecuteMsg::UpdateAccountData { 
+            account_data, 
+            operation 
+        } => update_account_data(deps, env, info, account_data, operation)
 
     }
 }
@@ -76,16 +79,11 @@ pub fn reply(deps: DepsMut, _: Env, msg: Reply) -> Result<Response, ContractErro
         let data = CREATION_CACHE.load(deps.storage)?.account_data;
         
         let primary = &data.primary_id();
-        let accounts = match ACCOUNTS.may_load(deps.storage, primary.clone())? {
-            Some(mut accounts) => {
-                accounts.push(addr.clone());
-                accounts
-            }
-            None => vec![addr.clone()],
-        };
-        ACCOUNTS.save(deps.storage, primary.clone(), &accounts)?;
+
+        ACCOUNTS.save(deps.storage, primary.clone(), &addr)?;
+        CREATION_CACHE.remove(deps.storage);
         
-        data.secondaries()
+        data.credentials
             .iter()
             .try_for_each(|cred| -> Result<(), ContractError> {
                 let id = cred.id();
@@ -95,11 +93,9 @@ pub fn reply(deps: DepsMut, _: Env, msg: Reply) -> Result<Response, ContractErro
                 );
                 CREDENTIALS.save(deps.storage, id.clone(), primary)?;
                 Ok(())
-            })?;
-
+        })?;
 
         Cw82Contract(ver_addr).supports_interface(&deps.querier)?;
-
         Ok(Response::default())
     } else {
         Err(ContractError::Unauthorized {})
@@ -107,18 +103,18 @@ pub fn reply(deps: DepsMut, _: Env, msg: Reply) -> Result<Response, ContractErro
 }
 
 
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::AccountInfo(_) => to_json_binary(&account_info(deps)?),
-
-        //QueryMsg::Accounts { skip, limit } => to_json_binary(&accounts(deps, skip, limit)?),
+        QueryMsg::AccountInfo(
+            query
+        ) => to_json_binary(&account_info(deps, query.query)?),
 
         QueryMsg::RegistryParams {} => to_json_binary(&REGISTRY_PARAMS.load(deps.storage)?),
-
-        _ => todo!(),
     }
 }
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(_: DepsMut, _: Env, _: MigrateMsg) -> StdResult<Response> {

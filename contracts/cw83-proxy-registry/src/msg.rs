@@ -1,24 +1,19 @@
 use cosmwasm_schema::{cw_serde, serde::Serialize, QueryResponses};
-use cosmwasm_std::Empty;
+use cosmwasm_std::{Binary, Empty};
 use cw83::{
     registry_query, AccountInfoResponse as AccountInfoResponseBase,
     AccountQuery as AccountQueryBase,
 };
 
-use cw_accs::{CreateAccountMsg, MigrateAccountMsg, RegistryParams};
-use saa::CredentialData;
+use cw_accs::{CreateAccountMsg, RegistryParams};
+use saa::{CredentialData, UpdateOperation};
 
 #[cw_serde]
 pub struct InstantiateMsg {
     pub params: RegistryParams,
 }
 
-/// A List of the collections registered in the registry
-#[cw_serde]
-pub struct CollectionsResponse {
-    /// Contract addresses of each collections
-    pub collections: Vec<String>,
-}
+
 
 /// An full account stored in the registry
 #[cw_serde]
@@ -27,14 +22,6 @@ pub struct Account {
     pub address: String,
 }
 
-/// An entry without collection address
-#[cw_serde]
-pub struct CollectionAccount {
-    /// Token id
-    pub token_id: String,
-    /// Address of the token-bound account
-    pub address: String,
-}
 
 #[cw_serde]
 pub struct AccountsResponse {
@@ -44,30 +31,25 @@ pub struct AccountsResponse {
     pub accounts: Vec<Account>,
 }
 
+
 #[cw_serde]
-pub struct CollectionAccountsResponse {
-    /// Total number of accounts of a specific collection
-    pub total: u32,
-    /// List of the accounts matching the query
-    pub accounts: Vec<CollectionAccount>,
+pub enum CredentialQuery {
+    One(Binary),
+    Many(Vec<Binary>)
 }
 
-pub type AccountQuery = AccountQueryBase<Empty>;
+
+
+pub type AccountQuery = AccountQueryBase<CredentialQuery>;
 pub type AccountInfoResponse = AccountInfoResponseBase<Empty>;
+
+
 
 #[registry_query]
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    /// Query all accounts in the registry in descending order
-    #[returns(AccountsResponse)]
-    Accounts {
-        /// Number of accounts to skip
-        /// [NOTE]: Not same as `start_after`
-        skip: Option<u32>,
-        /// Limit how many accounts to return
-        limit: Option<u32>,
-    },
+
 
     /// Query params of the registry
     #[returns(RegistryParams)]
@@ -77,6 +59,7 @@ pub enum QueryMsg {
 #[cw_serde]
 pub struct MigrateMsg {}
 
+
 #[cw_serde]
 pub enum ExecuteMsg<T = CredentialData>
 where
@@ -84,14 +67,15 @@ where
 {
     CreateAccount(CreateAccountMsg<T>),
 
-    /// Migrate an account to the newer code version if the code id is allowed
-    MigrateAccount {
-        /// New code id to migrate the account to
-        new_code_id: u64,
-        /// Migration message to be passed to the account contract
-        msg: MigrateAccountMsg,
+    UpdateAccountData {
+        /// Existing acccount data to proof ownership
+        account_data: T,
+        /// New account data to add or remove
+        operation: UpdateOperation<T>,
     },
+
 }
+
 
 #[cw_serde]
 pub enum SudoMsg {

@@ -37,7 +37,6 @@ pub struct SignedMessages {
 
 
 
-
 pub type InstantiateMsg = InstantiateAccountMsg;
 
 pub type ExecuteMsg = ExecuteAccountMsg<SignedDataMsg, CredentialData>;

@@ -64,22 +64,8 @@ pub fn try_updating_account_data(
     data: Option<CredentialData>,
     op: UpdateOperation
 ) -> ContractResult {
-
-    match data {
-        Some(data) => {
-            data.update_cosmwasm(op, deps.api, deps.storage, &env, &info)?;
-        },
-        None => {
-            assert_caller(deps.as_ref(), info.sender.as_str())?;
-
-            CredentialData {
-                credentials: vec![],
-                primary_index: None,
-                with_caller: None
-            }.update_cosmwasm(op, deps.api, deps.storage, &env, &info)?;
-        }
-    }
-
+    assert_registry(deps.storage, info.sender.as_str())?;
+    data.unwrap().update_cosmwasm(op, deps.api, deps.storage, &env, &info)?;
     Ok(Response::new().add_attributes(vec![("action", "update_account_data")]))
 }
 

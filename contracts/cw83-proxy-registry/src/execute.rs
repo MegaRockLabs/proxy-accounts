@@ -1,17 +1,15 @@
 use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
-    ensure, to_json_binary, Addr, CosmosMsg, DepsMut, Env, MessageInfo, ReplyOn, Response, SubMsg, WasmMsg
+    ensure, to_json_binary, CosmosMsg, DepsMut, Env, MessageInfo, ReplyOn, Response, SubMsg, WasmMsg
 };
 
 use cw83::CREATE_ACCOUNT_REPLY_ID;
-use cw_accs::{
-    InstantiateAccountMsg, MigrateAccountMsg
-};
-use saa::CredentialData;
+use cw_accs::InstantiateAccountMsg;
+use saa::{messages::SignedDataMsg, CredentialData, CredentialsWrapper, UpdateOperation, Verifiable};
 
 
 use crate::{
-    error::ContractError, funds::checked_funds, registry::construct_label, state::{CreationCache, CREATION_CACHE, REGISTRY_PARAMS}
+    error::ContractError, funds::checked_funds, registry::construct_label, state::{CreationCache, ACCOUNTS, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS}
 };
 
 pub fn create_account<A: Serialize>(
@@ -24,8 +22,6 @@ pub fn create_account<A: Serialize>(
     actions: Option<Vec<A>>,
 ) -> Result<Response, ContractError> {
     let params = REGISTRY_PARAMS.load(deps.storage)?;
-    
-    ensure!(CREATION_CACHE.may_load(deps.storage)?.is_none(), ContractError::Unauthorized {});
     ensure!(env.block.chain_id == chain_id, ContractError::InvalidChainId {});
     ensure!(params.allowed_code_ids.contains(&code_id), ContractError::InvalidCodeId {});
 
@@ -67,27 +63,57 @@ pub fn create_account<A: Serialize>(
 
 
 
-pub fn migrate_account(
+
+pub fn update_account_data(
     deps: DepsMut,
-    _sender: Addr,
-    new_code_id: u64,
-    msg: MigrateAccountMsg,
+    _: Env,
+    _: MessageInfo,
+    account_data: CredentialData,
+    operation: UpdateOperation
 ) -> Result<Response, ContractError> {
-    if !REGISTRY_PARAMS
-        .load(deps.storage)?
-        .allowed_code_ids
-        .contains(&new_code_id)
-    {
-        return Err(ContractError::InvalidCodeId {});
+
+    account_data.verify_cosmwasm(deps.api)?;
+    let primary_id = account_data.primary_id();
+    let address = ACCOUNTS.load(deps.storage, primary_id.clone());
+    ensure!(address.is_ok(), ContractError::NoAccounts {});
+
+    match &operation {
+        UpdateOperation::Add(cred) => {
+            cred.credentials.iter().try_for_each(|cred| -> Result<(), ContractError> {
+                let id = cred.id();
+                ensure!(
+                    !CREDENTIALS.has(deps.storage, id.clone()),
+                    ContractError::AccountExists {}
+                );
+                CREDENTIALS.save(deps.storage, id.clone(), &primary_id)?;
+                Ok(())
+            })?;
+        },
+        UpdateOperation::Remove(cred) => {
+            cred.credentials.iter().try_for_each(|cred| -> Result<(), ContractError> {
+                let id = cred.id();
+                ensure!(
+                    CREDENTIALS.load(deps.storage, id.clone())? == primary_id,
+                    ContractError::Unauthorized {}
+                );
+                CREDENTIALS.remove(deps.storage, id.clone());
+                Ok(())
+            })?;
+        },
     }
- 
-    let msg = CosmosMsg::Wasm(WasmMsg::Migrate {
-        contract_addr: "todo".to_string(),
-        new_code_id,
-        msg: to_json_binary(&msg)?,
+
+    let msg : CosmosMsg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: address?,
+        msg: to_json_binary(&cw_accs::ExecuteAccountMsg::<SignedDataMsg, CredentialData>::UpdateAccountData { 
+            account_data: Some(account_data),
+            operation,
+        })?,
+        funds: vec![],
     });
-    Ok(Response::default().add_message(msg).add_attributes(vec![
-        ("action", "migrate_account"),
-        ("new_code_id", new_code_id.to_string().as_str()),
-    ]))
+
+
+    Ok(Response::new().add_message(msg))
+
 }
+
+
