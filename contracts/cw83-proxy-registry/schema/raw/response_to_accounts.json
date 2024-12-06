@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AccountsResponse",
+  "type": "object",
+  "required": [
+    "accounts",
+    "total"
+  ],
+  "properties": {
+    "accounts": {
+      "description": "List of the accounts matching the query",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Account"
+      }
+    },
+    "total": {
+      "description": "Total number of accounts in the registry",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Account": {
+      "description": "An full account stored in the registry",
+      "type": "object",
+      "required": [
+        "address",
+        "token_info"
+      ],
+      "properties": {
+        "address": {
+          "description": "Address of the token-bound account",
+          "type": "string"
+        },
+        "token_info": {
+          "description": "Token info of the account",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenInfo"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TokenInfo": {
+      "type": "object",
+      "required": [
+        "collection",
+        "id"
+      ],
+      "properties": {
+        "collection": {
+          "description": "Contract address of the collection",
+          "type": "string"
+        },
+        "id": {
+          "description": "Token id",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

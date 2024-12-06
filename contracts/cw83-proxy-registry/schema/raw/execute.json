@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "create_account"
+      ],
+      "properties": {
+        "create_account": {
+          "$ref": "#/definitions/CreateAccountMsg_for_TokenAccount_for_Binary"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Update the owner of a token-bound account",
+      "type": "object",
+      "required": [
+        "update_account_ownership"
+      ],
+      "properties": {
+        "update_account_ownership": {
+          "type": "object",
+          "required": [
+            "token_info"
+          ],
+          "properties": {
+            "new_account_data": {
+              "description": "New data of the account used for (cw81 signature verification)",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Binary"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "token_info": {
+              "description": "Non-Fungible Token Info that the existing account is linked to",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenInfo"
+                }
+              ]
+            },
+            "update_for": {
+              "description": "Admin only parameter to update the account on behalf of another user that holds the token",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Create a new token-bound account. Access the old one will be forever lost",
+      "type": "object",
+      "required": [
+        "reset_account"
+      ],
+      "properties": {
+        "reset_account": {
+          "$ref": "#/definitions/CreateAccountMsg_for_TokenAccount_for_Binary"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Migrate an account to the newer code version if the code id is allowed",
+      "type": "object",
+      "required": [
+        "migrate_account"
+      ],
+      "properties": {
+        "migrate_account": {
+          "type": "object",
+          "required": [
+            "msg",
+            "new_code_id",
+            "token_info"
+          ],
+          "properties": {
+            "msg": {
+              "description": "Migration message to be passed to the account contract",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/MigrateAccountMsg_for_Empty"
+                }
+              ]
+            },
+            "new_code_id": {
+              "description": "New code id to migrate the account to",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "token_info": {
+              "description": "Non-Fungible Token Info that the existing account is linked to",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/TokenInfo"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "CreateAccountMsg_for_TokenAccount_for_Binary": {
+      "type": "object",
+      "required": [
+        "chain_id",
+        "code_id",
+        "msg"
+      ],
+      "properties": {
+        "chain_id": {
+          "type": "string"
+        },
+        "code_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "msg": {
+          "$ref": "#/definitions/TokenAccount_for_Binary"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Empty": {
+      "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
+      "type": "object"
+    },
+    "MigrateAccountMsg_for_Empty": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Empty"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TokenAccount_for_Binary": {
+      "description": "An extenstion for [cw83::CreateAccountMsg]",
+      "type": "object",
+      "required": [
+        "account_data",
+        "token_info"
+      ],
+      "properties": {
+        "account_data": {
+          "description": "Account data used for (cw81 signature verification)",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        },
+        "create_for": {
+          "description": "Optional parameter to create an account on behalf of another user that holds the token",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "token_info": {
+          "description": "Non-Fungible Token Info that the created account will be linked to",
+          "allOf": [
+            {
+              "$ref": "#/definitions/TokenInfo"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TokenInfo": {
+      "type": "object",
+      "required": [
+        "collection",
+        "id"
+      ],
+      "properties": {
+        "collection": {
+          "description": "Contract address of the collection",
+          "type": "string"
+        },
+        "id": {
+          "description": "Token id",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

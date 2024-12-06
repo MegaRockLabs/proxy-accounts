@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Array_of_TokenInfo",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/TokenInfo"
+  },
+  "definitions": {
+    "TokenInfo": {
+      "type": "object",
+      "required": [
+        "collection",
+        "id"
+      ],
+      "properties": {
+        "collection": {
+          "description": "Contract address of the collection",
+          "type": "string"
+        },
+        "id": {
+          "description": "Token id",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

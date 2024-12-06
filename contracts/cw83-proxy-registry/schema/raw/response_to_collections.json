@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CollectionsResponse",
+  "description": "A List of the collections registered in the registry",
+  "type": "object",
+  "required": [
+    "collections"
+  ],
+  "properties": {
+    "collections": {
+      "description": "Contract addresses of each collections",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

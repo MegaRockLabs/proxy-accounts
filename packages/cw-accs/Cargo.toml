@@ -1,0 +1,17 @@
+[package]
+name            = "cw-accs"
+authors         = [ "Kromsten <s@noreply.megarock.app>" ]
+edition         = { workspace = true }
+version         = { workspace = true }
+repository      = { workspace = true }
+description     = "Definition and types for Token-Bound Accounts"
+
+
+[dependencies]
+cosmwasm-std    = { workspace = true, features = ["staking", "stargate" ] }
+cosmwasm-schema = { workspace = true }
+schemars        = { workspace = true }
+cw83            = { workspace = true }
+cw82            = { workspace = true }
+cw-ownable      = { workspace = true }
+saa             = { workspace = true }

@@ -1,0 +1,51 @@
+[workspace]
+members = [
+    "contracts/*",
+    "packages/*",
+]
+
+resolver = "2"
+
+[workspace.package]
+version    = "0.0.1"
+edition    = "2021"
+repository = ""
+
+
+
+[workspace.dependencies]
+cosmwasm-std         = { version = "1.5.8",  features = ["iterator", "staking", "ibc3", "iterator", "cosmwasm_1_4" ] }
+cosmwasm-schema      = "1.5.8"
+cw-storage-plus      = "0.16.0"
+
+serde                = { version = "1.0.204", features = ["derive"] }
+
+semver                  = "1.0.23"
+schemars                = "0.8.21"
+thiserror               = "1.0.61"
+
+cw-ownable              = "0.5.1"
+cw-utils                = "1.0.3"
+cw1                     = "1.1.2"
+cw2                     = "1.1.2"
+
+cw81                    = "1.3.0 "
+cw82                    = "1.3.0"
+cw83                    = "1.3.0"
+cw22                    = "1.5.9"
+cw721                   = "0.18.0"
+
+saa                     = { package = "smart-account-auth", features = ["cosmwasm"], version = "0.24.1" }
+
+cw-accs                 = { path = "packages/cw-accs"     }
+cw82-proxy-account      = { path = "contracts/cw82-proxy-account", features = ["library"] }
+cw83-proxy-registry     = { path = "contracts/cw83-proxy-registry", features = ["library"] }
+
+
+[profile.release]
+rpath            = false
+lto              = true
+overflow-checks  = true
+debug            = false
+debug-assertions = false
+opt-level        = 3

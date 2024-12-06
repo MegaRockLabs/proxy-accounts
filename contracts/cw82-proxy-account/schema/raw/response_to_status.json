@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Status",
+  "type": "object",
+  "required": [
+    "frozen"
+  ],
+  "properties": {
+    "frozen": {
+      "description": "Whether the account is frozen",
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

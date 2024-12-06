@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CollectionAccountsResponse",
+  "type": "object",
+  "required": [
+    "accounts",
+    "total"
+  ],
+  "properties": {
+    "accounts": {
+      "description": "List of the accounts matching the query",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CollectionAccount"
+      }
+    },
+    "total": {
+      "description": "Total number of accounts of a specific collection",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "CollectionAccount": {
+      "description": "An entry without collection address",
+      "type": "object",
+      "required": [
+        "address",
+        "token_id"
+      ],
+      "properties": {
+        "address": {
+          "description": "Address of the token-bound account",
+          "type": "string"
+        },
+        "token_id": {
+          "description": "Token id",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
