@@ -1,0 +1,28 @@
+{
+    "contract_info_first": {
+        "contracts": [
+            {
+                "code_id": 20,
+                "name": "registry",
+                "address": "neutron1nyuryl5u5z04dx4zsqgvsuw7fe8gl2f77yufynauuhklnnmnjncqcls0tj"
+            },
+            {
+                "name": "account",
+                "code_id": 24
+            }
+        ]
+    },
+    "contract_info_second": {
+        "contracts": [
+            {
+                "code_id": 20,
+                "name": "registry",
+                "address": "neutron1nyuryl5u5z04dx4zsqgvsuw7fe8gl2f77yufynauuhklnnmnjncqcls0tj"
+            },
+            {
+                "name": "account",
+                "code_id": 24
+            }
+        ]
+    }
+}

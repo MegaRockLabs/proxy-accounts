@@ -1,0 +1,36 @@
+{
+    "gasUsage": {
+        "factory_nft_upload": {
+            "txHash": "07D815B060CFA0BCB8158813602694BAA20FBA79221DEFCD256F44711943AC39",
+            "gasUsed": "2506819"
+        },
+        "factory_nft_instantiate": {
+            "txHash": "7040D369CC7CF5B31EC2F6922C61F6BE6FF0475F6E1F7971AAF46D78B6DCD763",
+            "gasUsed": "249046"
+        },
+        "cw1_whitelist_upload": {
+            "txHash": "784DF1E893B6F75BC5BF96D1AF3C0498782817EDF39180703F6D9BDDB9313EA6",
+            "gasUsed": "1389831"
+        },
+        "cw1_whitelist_instantiate": {
+            "txHash": "66517CD145CFB0D2C5537EBCAAA60FD543DDC6BF9CADE46AE8EF67FA60246162",
+            "gasUsed": "220283"
+        },
+        "factory_nft_mint": {
+            "txHash": "22C1203F9FD5041B69B3B09E7A01F2C3DA5B9AFE7832237A888902AE8ABBCCD3",
+            "gasUsed": "327438"
+        },
+        "registry_upload": {
+            "txHash": "A91219DB060F73E56AF784A49026D65C2E3FD638C36AA1B435547069BE61F68E",
+            "gasUsed": "2738214"
+        },
+        "account_upload": {
+            "txHash": "7ECBE7CCBCCFB20F0C83B84FEB73541C4800AC9E3369DFA8D8E1DF716AA2FC92",
+            "gasUsed": "3833931"
+        },
+        "registry_instantiate": {
+            "txHash": "8EBA22E547569428B7E25C351D2AB1F8E81B2522F23C2AC847FB221CF91CE5D6",
+            "gasUsed": "223828"
+        }
+    }
+}
