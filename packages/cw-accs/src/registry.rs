@@ -4,6 +4,8 @@ use saa::CredentialData;
 
 use crate::ExecuteAccountMsg;
 
+
+
 #[cw_serde]
 pub struct RegistryParams<T = Option<Empty>> {
     pub allowed_code_ids: Vec<u64>,

@@ -7,7 +7,7 @@
   ],
   "properties": {
     "params": {
-      "$ref": "#/definitions/RegistryParams_for_Empty"
+      "$ref": "#/definitions/RegistryParams_for_Nullable_Empty"
     }
   },
   "additionalProperties": false,
@@ -31,12 +31,11 @@
       "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
       "type": "object"
     },
-    "RegistryParams_for_Empty": {
+    "RegistryParams_for_Nullable_Empty": {
       "type": "object",
       "required": [
         "allowed_code_ids",
         "creation_fees",
-        "extension",
         "managers"
       ],
       "properties": {
@@ -55,7 +54,14 @@
           }
         },
         "extension": {
-          "$ref": "#/definitions/Empty"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Empty"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "managers": {
           "type": "array",

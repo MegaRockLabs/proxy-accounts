@@ -3,115 +3,6 @@
   "title": "QueryMsg",
   "oneOf": [
     {
-      "description": "Query all accounts in the registry in descending order",
-      "type": "object",
-      "required": [
-        "accounts"
-      ],
-      "properties": {
-        "accounts": {
-          "type": "object",
-          "properties": {
-            "limit": {
-              "description": "Limit how many accounts to return",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "skip": {
-              "description": "Number of accounts to skip [NOTE]: Not same as `start_after`",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Query accounts linked to a token of a specific collection in descending order",
-      "type": "object",
-      "required": [
-        "collection_accounts"
-      ],
-      "properties": {
-        "collection_accounts": {
-          "type": "object",
-          "required": [
-            "collection"
-          ],
-          "properties": {
-            "collection": {
-              "description": "Contract address of the collection",
-              "type": "string"
-            },
-            "limit": {
-              "description": "Limit how many accounts to return",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "skip": {
-              "description": "Number of accounts to skip",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Query all the collections the registry is aware of",
-      "type": "object",
-      "required": [
-        "collections"
-      ],
-      "properties": {
-        "collections": {
-          "type": "object",
-          "properties": {
-            "limit": {
-              "description": "Limit how many collections to return",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "skip": {
-              "description": "Number of collections to skip",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
       "description": "Query params of the registry",
       "type": "object",
       "required": [
@@ -132,42 +23,59 @@
       ],
       "properties": {
         "account_info": {
-          "$ref": "#/definitions/AccountQuery_for_TokenInfo"
+          "$ref": "#/definitions/AccountQuery_for_CredentialQuery"
         }
       },
       "additionalProperties": false
     }
   ],
   "definitions": {
-    "AccountQuery_for_TokenInfo": {
+    "AccountQuery_for_CredentialQuery": {
       "type": "object",
       "required": [
         "query"
       ],
       "properties": {
         "query": {
-          "$ref": "#/definitions/TokenInfo"
+          "$ref": "#/definitions/CredentialQuery"
         }
       },
       "additionalProperties": false
     },
-    "TokenInfo": {
-      "type": "object",
-      "required": [
-        "collection",
-        "id"
-      ],
-      "properties": {
-        "collection": {
-          "description": "Contract address of the collection",
-          "type": "string"
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "CredentialQuery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "one"
+          ],
+          "properties": {
+            "one": {
+              "$ref": "#/definitions/Binary"
+            }
+          },
+          "additionalProperties": false
         },
-        "id": {
-          "description": "Token id",
-          "type": "string"
+        {
+          "type": "object",
+          "required": [
+            "many"
+          ],
+          "properties": {
+            "many": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Binary"
+              }
+            }
+          },
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     }
   }
 }

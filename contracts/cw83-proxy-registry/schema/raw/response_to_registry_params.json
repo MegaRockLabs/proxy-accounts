@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "RegistryParams_for_Empty",
+  "title": "RegistryParams_for_Nullable_Empty",
   "type": "object",
   "required": [
     "allowed_code_ids",
     "creation_fees",
-    "extension",
     "managers"
   ],
   "properties": {
@@ -24,7 +23,14 @@
       }
     },
     "extension": {
-      "$ref": "#/definitions/Empty"
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Empty"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "managers": {
       "type": "array",

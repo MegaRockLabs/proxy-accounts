@@ -1,25 +1,24 @@
-use cosmwasm_schema::serde::Serialize;
 use cosmwasm_std::{
-    ensure, to_json_binary, CosmosMsg, DepsMut, Env, MessageInfo, ReplyOn, Response, SubMsg, WasmMsg
+    ensure, to_json_binary, BankMsg, Binary, Coin, CosmosMsg, DepsMut, Env, MessageInfo, ReplyOn, Response, SubMsg, WasmMsg
 };
 
 use cw83::CREATE_ACCOUNT_REPLY_ID;
-use cw_accs::InstantiateAccountMsg;
+use cw_accs::{ExecuteAccountMsg, InstantiateAccountMsg};
 use saa::{messages::SignedDataMsg, CredentialData, CredentialsWrapper, UpdateOperation, Verifiable};
 
 
 use crate::{
-    error::ContractError, funds::checked_funds, registry::construct_label, state::{CreationCache, ACCOUNTS, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS}
+    error::ContractError, funds::checked_funds, registry::construct_label, state::{CreationCache, ACCOUNTS, ADMIN, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS}
 };
 
-pub fn create_account<A: Serialize>(
+pub fn create_account(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     chain_id: String,
     code_id: u64,
     account_data: CredentialData,
-    actions: Option<Vec<A>>,
+    actions: Option<Vec<ExecuteAccountMsg>>,
 ) -> Result<Response, ContractError> {
     let params = REGISTRY_PARAMS.load(deps.storage)?;
     ensure!(env.block.chain_id == chain_id, ContractError::InvalidChainId {});
@@ -29,7 +28,8 @@ pub fn create_account<A: Serialize>(
     let funds = checked_funds(deps.storage, &info)?;
     let label = construct_label(None);
 
-    let init_msg = InstantiateAccountMsg::<A, CredentialData> {
+    
+    let init_msg = InstantiateAccountMsg {
         account_data: account_data.clone(),
         actions,
     };
@@ -71,8 +71,8 @@ pub fn update_account_data(
     account_data: CredentialData,
     operation: UpdateOperation
 ) -> Result<Response, ContractError> {
-
-    account_data.verify_cosmwasm(deps.api)?;
+    account_data.validate()?;
+    
     let primary_id = account_data.primary_id();
     let address = ACCOUNTS.load(deps.storage, primary_id.clone());
     ensure!(address.is_ok(), ContractError::NoAccounts {});
@@ -117,3 +117,27 @@ pub fn update_account_data(
 }
 
 
+
+
+pub fn forward(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    address: String,
+    amount: Option<Vec<Coin>>,
+    data: Option<Binary>
+) -> Result<Response, ContractError> {
+    if data.is_none() {
+        ensure!(ADMIN.load(deps.storage)? == info.sender, ContractError::Unauthorized {});
+        let amount = match amount {
+            Some(amount) => amount,
+            None => deps.querier.query_all_balances(env.contract.address)?
+        };
+        let msg : CosmosMsg = BankMsg::Send { to_address: address, amount }.into();
+        Ok(Response::new().add_message(msg))
+    } else {
+        Err(ContractError::Std(cosmwasm_std::StdError::generic_err("not implemented")))
+    }
+
+}
+  

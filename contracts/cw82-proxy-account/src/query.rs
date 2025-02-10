@@ -1,5 +1,6 @@
-use cosmwasm_std::{ensure, from_json, CosmosMsg, Deps, Env, StdError, StdResult, Binary};
+use cosmwasm_std::{ensure, from_json, Binary, CosmosMsg, Deps, Env, StdError, StdResult};
 use cw82::{CanExecuteResponse, ValidSignatureResponse, ValidSignaturesResponse};
+use cw_ownable::Ownership;
 use saa::messages::{AccountCredentials, AuthPayload, MsgDataToSign, SignedDataMsg};
 
 use crate::{
@@ -109,7 +110,13 @@ pub fn full_info(
     env: Env,
 ) -> StdResult<FullInfoResponse> {
     let balances = deps.querier.query_all_balances(env.contract.address)?;
-    let ownership = cw_ownable::get_ownership(deps.storage)?;
+    let ownership = cw_ownable::get_ownership(deps.storage).unwrap_or(
+        Ownership {
+            owner: None,
+            pending_expiry: None,
+            pending_owner: None,
+        }
+    );
     let credentials = credentials(deps)?;
 
     Ok(FullInfoResponse {

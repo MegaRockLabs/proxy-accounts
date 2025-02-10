@@ -13,12 +13,14 @@
   "devDependencies": {
     "@cosmjs/math": "^0.32.4",
     "@cosmjs/stargate": "^0.32.4",
-    "@keplr-wallet/types": "^0.12.153",
+    "@keplr-wallet/types": "^0.12.159",
     "@skeletonlabs/skeleton": "2.9.0",
     "@skeletonlabs/tw-plugin": "0.3.1",
     "@sveltejs/adapter-static": "^3.0.6",
-    "@sveltejs/kit": "^2.8.0",
+    "@sveltejs/kit": "^2.9.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@types/bun": "latest",
     "@types/node": "20.12.2",
     "autoprefixer": "10.4.19",
     "cosmjs-types": "^0.9.0",
@@ -29,21 +31,35 @@
     "svelte-check": "^3.8.6",
     "tailwindcss": "3.4.3",
     "tslib": "^2.8.1",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
     "vite-plugin-tailwind-purgecss": "0.2.0",
-    "vitest": "^2.1.8",
-    "@types/bun": "latest"
+    "vitest": "^2.1.8"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@cosmjs/cosmwasm-stargate": "^0.32.4",
+    "@cosmjs/cosmwasm-stargate": "^0.33.0",
     "@floating-ui/dom": "^1.6.12",
+    "@reown/appkit": "^1.6.5",
+    "@reown/appkit-adapter-solana": "^1.6.5",
+    "@reown/appkit-adapter-wagmi": "^1.6.5",
+    "@reown/walletkit": "^1.2.0",
+    "@skip-go/client": "^0.16.7",
+    "@solana/spl-token": "^0.4.11",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
+    "@solana/web3.js": "^1.98.0",
+    "@tanstack/react-query": "^5.65.1",
+    "@wagmi/connectors": "^5.7.5",
+    "@wagmi/core": "^2.16.3",
+    "@walletconnect/core": "^2.18.0",
+    "@walletconnect/utils": "^2.18.0",
     "dotenv": "^16.4.7",
     "material-icons": "latest",
     "smart-account-auth": "0.3.0",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "viem": "^2.22.17",
+    "vite-plugin-node-polyfills": "^0.23.0",
+    "wagmi": "^2.14.9"
   }
 }

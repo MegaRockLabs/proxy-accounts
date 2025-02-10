@@ -6,9 +6,13 @@ use crate::{
     utils::{assert_caller, assert_registry
     }
 };
-use cosmwasm_std::{from_json, to_json_binary, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response};
+use cosmwasm_std::{
+    from_json, to_json_binary, Addr, DepsMut, Env, MessageInfo,
+    CosmosMsg as StdCosmosMsg
+};
 use cw2::CONTRACT;
 use cw22::SUPPORTED_INTERFACES;
+use cw_accs::{encode_feegrant_msg, BasicAllowance, CosmosMsg, Response};
 use saa::{messages::SignedDataMsg, reset_credentials, storage::increment_account_number, CredentialData, UpdateOperation};
 
 pub const MINT_REPLY_ID: u64 = 1;
@@ -18,13 +22,13 @@ pub fn try_executing(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msgs: Vec<CosmosMsg<SignedDataMsg>>,
+    msgs: Vec<StdCosmosMsg<SignedDataMsg>>,
 ) -> ContractResult {
     let mut res = Response::new();
 
     for msg in msgs {
 
-        if let CosmosMsg::Custom(signed) = msg.clone() {
+        if let StdCosmosMsg::Custom(signed) = msg.clone() {
 
             saa::verify_signed_actions(
                 deps.api,
@@ -36,7 +40,7 @@ pub fn try_executing(
             let data : SignedMessages = from_json(&signed.data)?;
 
             for action in data.messages {
-                let action_res = execute_action(action)?;
+                let action_res = execute_action(&env, action)?;
                 res = res
                     .add_submessages(action_res.messages)
                     .add_events(action_res.events)
@@ -71,6 +75,24 @@ pub fn try_updating_account_data(
 
 
 
+pub fn try_fee_granting(
+    contract: &str, 
+    grantee: &str, 
+    allowance: Option<BasicAllowance>
+) -> ContractResult {
+
+    let msg = encode_feegrant_msg(
+        contract,
+        grantee,
+        allowance,
+    )?;
+
+    Ok(Response::new()
+        .add_message(msg)
+        .add_attribute("action", "fee_grant"))
+}
+
+
 
 pub fn try_purging(deps: DepsMut, sender: Addr) -> ContractResult {
     assert_registry(deps.storage, sender.as_str())?;
@@ -85,3 +107,6 @@ pub fn try_purging(deps: DepsMut, sender: Addr) -> ContractResult {
 
     Ok(Response::default().add_attribute("action", "purge"))
 }
+
+
+

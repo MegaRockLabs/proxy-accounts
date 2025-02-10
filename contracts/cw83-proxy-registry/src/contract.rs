@@ -10,10 +10,10 @@ use saa::{CredentialsWrapper, Verifiable};
 
 use crate::{
     error::ContractError,
-    execute::{create_account, update_account_data},
+    execute::{create_account, forward, update_account_data},
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
     query::account_info,
-    state::{ACCOUNTS, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS},
+    state::{ACCOUNTS, ADMIN, CREATION_CACHE, CREDENTIALS, REGISTRY_PARAMS},
 };
 
 pub const CONTRACT_NAME: &str = "crates:cw83-proxy-registry";
@@ -24,7 +24,7 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _: Env,
-    _: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -36,6 +36,7 @@ pub fn instantiate(
         }],
     )?;
     REGISTRY_PARAMS.save(deps.storage, &msg.params)?;
+    ADMIN.save(deps.storage, &info.sender.to_string())?;
     Ok(Response::new().add_attributes(vec![("action", "instantiate")]))
 }
 
@@ -63,7 +64,13 @@ pub fn execute(
         ExecuteMsg::UpdateAccountData { 
             account_data, 
             operation 
-        } => update_account_data(deps, env, info, account_data, operation)
+        } => update_account_data(deps, env, info, account_data, operation),
+
+        ExecuteMsg::Forward {
+            address,
+            amount,
+            msg
+        } => forward(deps, env, info, address, amount, msg)
 
     }
 }
@@ -77,7 +84,6 @@ pub fn reply(deps: DepsMut, _: Env, msg: Reply) -> Result<Response, ContractErro
         let ver_addr = deps.api.addr_validate(addr.as_str())?;
 
         let data = CREATION_CACHE.load(deps.storage)?.account_data;
-        
         let primary = &data.primary_id();
 
         ACCOUNTS.save(deps.storage, primary.clone(), &addr)?;

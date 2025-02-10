@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, serde::Serialize, QueryResponses};
-use cosmwasm_std::{Binary, Empty};
+use cosmwasm_std::{Binary, Coin, Empty};
 use cw83::{
     registry_query, AccountInfoResponse as AccountInfoResponseBase,
     AccountQuery as AccountQueryBase,
@@ -72,6 +72,15 @@ where
         account_data: T,
         /// New account data to add or remove
         operation: UpdateOperation<T>,
+    },
+
+    Forward {
+        /// Address of the account to forward the message to
+        address: String,
+        /// Amount of tokens to forward
+        amount: Option<Vec<Coin>>,
+        /// Message to forward
+        msg: Option<Binary>,
     },
 
 }

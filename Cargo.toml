@@ -35,7 +35,8 @@ cw83                    = "1.3.0"
 cw22                    = "1.5.9"
 cw721                   = "0.18.0"
 
-saa                     = { package = "smart-account-auth", features = ["cosmwasm"], version = "0.24.1" }
+anybuf                  = { version = "0.5.2" }
+saa                     = { package = "smart-account-auth", features = ["cosmwasm"], version = "0.24.5" }
 
 cw-accs                 = { path = "packages/cw-accs"     }
 cw82-proxy-account      = { path = "contracts/cw82-proxy-account", features = ["library"] }

@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind variants;
+
+html {
+  font-size: 16px;
+}
+
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/Inter-VariableFont_slnt,wght.ttf');
+}
+
+html,
+body {
+	@apply h-full overflow-hidden;
+}
+
+.flex-center {
+	@apply flex justify-center items-center
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+.bg-glass {
+	background: rgb(255,255,255);
+	background: linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 60%);
+	@apply backdrop-blur-sm backdrop-brightness-[120%] backdrop-opacity-50;
+}
+.bg-glass-dark {
+	background: rgb(255,255,255);
+	background: linear-gradient(145deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 60%);
+	@apply backdrop-blur-sm backdrop-brightness-[60%] backdrop-opacity-50 border border-white/15;
+}
+.bg-glass-darker {
+	background: rgb(0,0,0);
+	background: linear-gradient(145deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 80%);
+	@apply backdrop-blur-sm backdrop-brightness-[10%] backdrop-contrast-[0.5] backdrop-opacity-50 border-white/20;
+}
+.bg-glass-shadow {
+	box-shadow: 0px 3px 24px 0px rgba(0,0,0,0.16);
+}

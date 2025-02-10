@@ -1,9 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cw_ownable::get_ownership;
 use cosmwasm_std::{
-    from_json, to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, SubMsg
+    to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, StdError, StdResult
 };
+use cw_accs::{Response, SubMsg};
+use saa::storage::ACCOUNT_NUMBER;
 
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
     error::ContractError, execute, 
     msg::{ContractResult, CredQueryMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg}, 
     query::{can_execute, credentials, full_info, valid_signature, valid_signatures}, 
-    state::{save_credentials, REGISTRY_ADDRESS, SERIAL}
+    state::{save_credentials, REGISTRY_ADDRESS}
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -53,7 +54,7 @@ pub fn instantiate(
     };
 
     REGISTRY_ADDRESS.save(deps.storage, &info.sender.to_string())?;
-    save_credentials(deps.api, deps.storage, &env, info.clone(), from_json(&msg.account_data)?)?;
+    save_credentials(deps.api, deps.storage, &env, info.clone(), msg.account_data)?;
 
     let actions = msg.actions.unwrap_or_default();
     let mut msgs: Vec<SubMsg> = Vec::with_capacity(actions.len());
@@ -61,7 +62,7 @@ pub fn instantiate(
     let res = if actions.len() > 0 {
         let mut res = Response::new();
         for action in actions {
-            let action_res = execute_action(action)?;
+            let action_res = execute_action(&env, action)?;
             msgs.extend(action_res.messages);
 
             res = res.add_events(action_res.events)
@@ -89,6 +90,13 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> C
             msgs 
         } => execute::try_executing(deps, env, info, msgs),
 
+        ExecuteMsg::FeeGrant { 
+            grantee, 
+            allowance 
+        } => execute::try_fee_granting(
+            env.contract.address.as_str(), grantee.as_str(), allowance
+        ),
+
 
         ExecuteMsg::UpdateAccountData {
             account_data,
@@ -110,9 +118,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         });
     };
     match msg {
-        QueryMsg::AccountNumber {} => to_json_binary(&SERIAL.load(deps.storage)?),
+        QueryMsg::AccountNumber {} => to_json_binary(&ACCOUNT_NUMBER.load(deps.storage)?),
         QueryMsg::Registry {} => to_json_binary(&REGISTRY_ADDRESS.load(deps.storage)?),
-        QueryMsg::Ownership {} => to_json_binary(&get_ownership(deps.storage)?),
         QueryMsg::CanExecute { sender, msg } => {
             to_json_binary(&can_execute(deps, env, sender, msg)?)
         }

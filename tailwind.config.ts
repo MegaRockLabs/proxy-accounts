@@ -1,7 +1,7 @@
 import { join } from 'path'
 import type { Config } from 'tailwindcss'
 import { skeleton } from '@skeletonlabs/tw-plugin';
-import { wizard } from './src/wizard'
+import { proxy } from './src/proxy'
 import { base } from './consts.mjs'
 
 export default {
@@ -21,7 +21,7 @@ export default {
 		  },
 		extend: {
 			backgroundImage: {
-				magic: `url('${base}/magic-bg.webp')`,
+				magic: `url('${base}/bg.jpg')`,
 			}
 		},
 	},
@@ -29,7 +29,7 @@ export default {
 		skeleton({
 			themes: {
 				custom: [
-					wizard,
+					proxy,
 				],
 			},
 		}),

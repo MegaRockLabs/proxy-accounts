@@ -19,6 +19,7 @@ fn get_account(
             let main_cred = CREDENTIALS.load(storage, cred_id.to_vec())?;
             ACCOUNTS.load(storage, main_cred)
         },
+        
         CredentialQuery::Many(cred_ids) => {
             ensure!(cred_ids.len() > 0, StdError::not_found("No account found for the given credential id"));
             let first_id = cred_ids.first().unwrap();

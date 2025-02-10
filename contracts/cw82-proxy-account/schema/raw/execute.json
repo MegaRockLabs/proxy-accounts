@@ -18,7 +18,7 @@
             "msgs": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/CosmosMsg_for_SignedActions"
+                "$ref": "#/definitions/CosmosMsg_for_SignedDataMsg"
               }
             }
           },
@@ -28,203 +28,29 @@
       "additionalProperties": false
     },
     {
-      "description": "Mint NFTs directly from token account",
+      "description": "Issue a fee grant to another account",
       "type": "object",
       "required": [
-        "mint_token"
+        "fee_grant"
       ],
       "properties": {
-        "mint_token": {
+        "fee_grant": {
           "type": "object",
           "required": [
-            "minter",
-            "msg"
+            "grantee"
           ],
           "properties": {
-            "minter": {
-              "description": "Contract address of the minter",
-              "type": "string"
-            },
-            "msg": {
-              "$ref": "#/definitions/Binary"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Send NFT to a contract",
-      "type": "object",
-      "required": [
-        "send_token"
-      ],
-      "properties": {
-        "send_token": {
-          "type": "object",
-          "required": [
-            "collection",
-            "contract",
-            "msg",
-            "token_id"
-          ],
-          "properties": {
-            "collection": {
-              "description": "Contract address of the collection",
-              "type": "string"
-            },
-            "contract": {
-              "description": "Recipient contract address",
-              "type": "string"
-            },
-            "msg": {
-              "description": "Send message to pass a recipient contract",
-              "allOf": [
-                {
-                  "$ref": "#/definitions/Binary"
-                }
-              ]
-            },
-            "token_id": {
-              "description": "Token id",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Simple NFT transfer",
-      "type": "object",
-      "required": [
-        "transfer_token"
-      ],
-      "properties": {
-        "transfer_token": {
-          "type": "object",
-          "required": [
-            "collection",
-            "recipient",
-            "token_id"
-          ],
-          "properties": {
-            "collection": {
-              "description": "Contract address of the collection",
-              "type": "string"
-            },
-            "recipient": {
-              "description": "Recipient address",
-              "type": "string"
-            },
-            "token_id": {
-              "description": "Token id",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Owner only method to make the account forget about certain tokens",
-      "type": "object",
-      "required": [
-        "forget_tokens"
-      ],
-      "properties": {
-        "forget_tokens": {
-          "type": "object",
-          "required": [
-            "collection",
-            "token_ids"
-          ],
-          "properties": {
-            "collection": {
-              "description": "Contract address of the collection",
-              "type": "string"
-            },
-            "token_ids": {
-              "description": "Optional list of token ids to forget. If not provided, all tokens will be forgotten",
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Owner only method that make the account aware of certain tokens to simplify the future queries",
-      "type": "object",
-      "required": [
-        "update_known_tokens"
-      ],
-      "properties": {
-        "update_known_tokens": {
-          "type": "object",
-          "required": [
-            "collection"
-          ],
-          "properties": {
-            "collection": {
-              "description": "Contract address of the collection",
-              "type": "string"
-            },
-            "limit": {
-              "description": "Limit of the tokens to return",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "start_after": {
-              "description": "Token id to start after",
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Registry only method to update the owner to the current NFT holder",
-      "type": "object",
-      "required": [
-        "update_ownership"
-      ],
-      "properties": {
-        "update_ownership": {
-          "type": "object",
-          "required": [
-            "new_owner"
-          ],
-          "properties": {
-            "new_account_data": {
-              "description": "New account data",
+            "allowance": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/CredentialData_for_String"
+                  "$ref": "#/definitions/BasicAllowance"
                 },
                 {
                   "type": "null"
                 }
               ]
             },
-            "new_owner": {
-              "description": "Current NFT holder",
+            "grantee": {
               "type": "string"
             }
           },
@@ -243,73 +69,29 @@
         "update_account_data": {
           "type": "object",
           "required": [
-            "new_account_data"
+            "operation"
           ],
           "properties": {
-            "new_account_data": {
+            "account_data": {
+              "description": "Old data to proof ownership",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CredentialData"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "operation": {
               "description": "New account data",
               "allOf": [
                 {
-                  "$ref": "#/definitions/CredentialData_for_String"
+                  "$ref": "#/definitions/UpdateOperation_for_CredentialData"
                 }
               ]
             }
           },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Registering a token as known on receiving",
-      "type": "object",
-      "required": [
-        "receive_nft"
-      ],
-      "properties": {
-        "receive_nft": {
-          "$ref": "#/definitions/Cw721ReceiveMsg"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Registry only method to call when a token is moved to escrow",
-      "type": "object",
-      "required": [
-        "freeze"
-      ],
-      "properties": {
-        "freeze": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Registry only method to call after the token is released from escrow",
-      "type": "object",
-      "required": [
-        "unfreeze"
-      ],
-      "properties": {
-        "unfreeze": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Remove all the data from the contract and make it unsuable",
-      "type": "object",
-      "required": [
-        "purge"
-      ],
-      "properties": {
-        "purge": {
-          "type": "object",
           "additionalProperties": false
         }
       },
@@ -324,12 +106,16 @@
       "properties": {
         "extension": {
           "type": "object",
-          "required": [
-            "msg"
-          ],
           "properties": {
             "msg": {
-              "$ref": "#/definitions/Empty"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Empty"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "additionalProperties": false
@@ -339,38 +125,7 @@
     }
   ],
   "definitions": {
-    "ActionDataToSign": {
-      "type": "object",
-      "required": [
-        "chain_id",
-        "contract_address",
-        "messages",
-        "nonce"
-      ],
-      "properties": {
-        "chain_id": {
-          "type": "string"
-        },
-        "contract_address": {
-          "$ref": "#/definitions/Addr"
-        },
-        "messages": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ExecuteAccountMsg_for_Empty_and_Nullable_Empty_and_Binary"
-          }
-        },
-        "nonce": {
-          "$ref": "#/definitions/Uint128"
-        }
-      },
-      "additionalProperties": false
-    },
-    "Addr": {
-      "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
-      "type": "string"
-    },
-    "AuthPayload_for_Nullable_Binary": {
+    "AuthPayload_for_Binary": {
       "type": "object",
       "properties": {
         "address": {
@@ -380,15 +135,14 @@
           ]
         },
         "credential_id": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "integer",
-            "format": "uint8",
-            "minimum": 0.0
-          }
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "extension": {
           "anyOf": [
@@ -466,11 +220,36 @@
         }
       ]
     },
+    "BasicAllowance": {
+      "type": "object",
+      "required": [
+        "spend_limit"
+      ],
+      "properties": {
+        "expiration": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spend_limit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Coin"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
     },
     "Binary2": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
     },
     "Caller": {
@@ -508,6 +287,12 @@
         "origin": {
           "type": "string"
         },
+        "other_keys_can_be_added_here": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "type": {
           "type": "string"
         }
@@ -528,7 +313,7 @@
         }
       }
     },
-    "CosmosArbitrary_for_String": {
+    "CosmosArbitrary": {
       "type": "object",
       "required": [
         "message",
@@ -543,18 +328,18 @@
           ]
         },
         "message": {
-          "type": "string"
+          "$ref": "#/definitions/Binary"
         },
         "pubkey": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         },
         "signature": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         }
       },
       "additionalProperties": false
     },
-    "CosmosMsg_for_Empty": {
+    "CosmosMsg_for_SignedDataMsg": {
       "oneOf": [
         {
           "type": "object",
@@ -575,7 +360,7 @@
           ],
           "properties": {
             "custom": {
-              "$ref": "#/definitions/Empty"
+              "$ref": "#/definitions/SignedDataMsg"
             }
           },
           "additionalProperties": false
@@ -622,7 +407,7 @@
                   "type": "string"
                 },
                 "value": {
-                  "$ref": "#/definitions/Binary"
+                  "$ref": "#/definitions/Binary2"
                 }
               }
             }
@@ -667,149 +452,7 @@
         }
       ]
     },
-    "CosmosMsg_for_SignedActions": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "bank"
-          ],
-          "properties": {
-            "bank": {
-              "$ref": "#/definitions/BankMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "custom"
-          ],
-          "properties": {
-            "custom": {
-              "$ref": "#/definitions/SignedActions"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "staking"
-          ],
-          "properties": {
-            "staking": {
-              "$ref": "#/definitions/StakingMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "distribution"
-          ],
-          "properties": {
-            "distribution": {
-              "$ref": "#/definitions/DistributionMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "A Stargate message encoded the same way as a protobuf [Any](https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/any.proto). This is the same structure as messages in `TxBody` from [ADR-020](https://github.com/cosmos/cosmos-sdk/blob/master/docs/architecture/adr-020-protobuf-transaction-encoding.md)",
-          "type": "object",
-          "required": [
-            "stargate"
-          ],
-          "properties": {
-            "stargate": {
-              "type": "object",
-              "required": [
-                "type_url",
-                "value"
-              ],
-              "properties": {
-                "type_url": {
-                  "type": "string"
-                },
-                "value": {
-                  "$ref": "#/definitions/Binary"
-                }
-              }
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "ibc"
-          ],
-          "properties": {
-            "ibc": {
-              "$ref": "#/definitions/IbcMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "wasm"
-          ],
-          "properties": {
-            "wasm": {
-              "$ref": "#/definitions/WasmMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "gov"
-          ],
-          "properties": {
-            "gov": {
-              "$ref": "#/definitions/GovMsg"
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
-    },
-    "CredentialData_for_String": {
-      "type": "object",
-      "required": [
-        "credentials"
-      ],
-      "properties": {
-        "credentials": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Credential_for_String"
-          }
-        },
-        "primary_index": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint8",
-          "minimum": 0.0
-        },
-        "with_caller": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "Credential_for_String": {
+    "Credential": {
       "oneOf": [
         {
           "type": "object",
@@ -826,35 +469,11 @@
         {
           "type": "object",
           "required": [
-            "evm"
+            "eth_personal_sign"
           ],
           "properties": {
-            "evm": {
-              "$ref": "#/definitions/EvmCredential"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "secp256k1"
-          ],
-          "properties": {
-            "secp256k1": {
-              "$ref": "#/definitions/Secp256k1"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "ed25519"
-          ],
-          "properties": {
-            "ed25519": {
-              "$ref": "#/definitions/Ed25519"
+            "eth_personal_sign": {
+              "$ref": "#/definitions/EthPersonalSign"
             }
           },
           "additionalProperties": false
@@ -866,7 +485,7 @@
           ],
           "properties": {
             "cosmos_arbitrary": {
-              "$ref": "#/definitions/CosmosArbitrary_for_String"
+              "$ref": "#/definitions/CosmosArbitrary"
             }
           },
           "additionalProperties": false
@@ -882,26 +501,46 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "ed25519"
+          ],
+          "properties": {
+            "ed25519": {
+              "$ref": "#/definitions/Ed25519"
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
-    "Cw721ReceiveMsg": {
-      "description": "Cw721ReceiveMsg should be de/serialized under `Receive()` variant in a ExecuteMsg",
+    "CredentialData": {
       "type": "object",
       "required": [
-        "msg",
-        "sender",
-        "token_id"
+        "credentials"
       ],
       "properties": {
-        "msg": {
-          "$ref": "#/definitions/Binary"
+        "credentials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Credential"
+          }
         },
-        "sender": {
-          "type": "string"
+        "primary_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0.0
         },
-        "token_id": {
-          "type": "string"
+        "with_caller": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
@@ -993,13 +632,13 @@
       ],
       "properties": {
         "message": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         },
         "pubkey": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         },
         "signature": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         }
       },
       "additionalProperties": false
@@ -1008,7 +647,7 @@
       "description": "An empty struct that serves as a placeholder in different places, such as contracts that don't set a custom message.\n\nIt is designed to be expressable in correct JSON and JSON Schema but contains no meaningful data. Previously we used enums without cases, but those cannot represented as valid JSON Schema (https://github.com/CosmWasm/cosmwasm/issues/451)",
       "type": "object"
     },
-    "EvmCredential": {
+    "EthPersonalSign": {
       "type": "object",
       "required": [
         "message",
@@ -1017,359 +656,16 @@
       ],
       "properties": {
         "message": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         },
         "signature": {
-          "$ref": "#/definitions/Binary2"
+          "$ref": "#/definitions/Binary"
         },
         "signer": {
           "type": "string"
         }
       },
       "additionalProperties": false
-    },
-    "ExecuteAccountMsg_for_Empty_and_Nullable_Empty_and_Binary": {
-      "oneOf": [
-        {
-          "description": "Proxy method for executing cosmos messages Wasm and Stargate messages aren't supported Only the current holder can execute this method",
-          "type": "object",
-          "required": [
-            "execute"
-          ],
-          "properties": {
-            "execute": {
-              "type": "object",
-              "required": [
-                "msgs"
-              ],
-              "properties": {
-                "msgs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/CosmosMsg_for_Empty"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Mint NFTs directly from token account",
-          "type": "object",
-          "required": [
-            "mint_token"
-          ],
-          "properties": {
-            "mint_token": {
-              "type": "object",
-              "required": [
-                "minter",
-                "msg"
-              ],
-              "properties": {
-                "minter": {
-                  "description": "Contract address of the minter",
-                  "type": "string"
-                },
-                "msg": {
-                  "$ref": "#/definitions/Binary"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Send NFT to a contract",
-          "type": "object",
-          "required": [
-            "send_token"
-          ],
-          "properties": {
-            "send_token": {
-              "type": "object",
-              "required": [
-                "collection",
-                "contract",
-                "msg",
-                "token_id"
-              ],
-              "properties": {
-                "collection": {
-                  "description": "Contract address of the collection",
-                  "type": "string"
-                },
-                "contract": {
-                  "description": "Recipient contract address",
-                  "type": "string"
-                },
-                "msg": {
-                  "description": "Send message to pass a recipient contract",
-                  "allOf": [
-                    {
-                      "$ref": "#/definitions/Binary"
-                    }
-                  ]
-                },
-                "token_id": {
-                  "description": "Token id",
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Simple NFT transfer",
-          "type": "object",
-          "required": [
-            "transfer_token"
-          ],
-          "properties": {
-            "transfer_token": {
-              "type": "object",
-              "required": [
-                "collection",
-                "recipient",
-                "token_id"
-              ],
-              "properties": {
-                "collection": {
-                  "description": "Contract address of the collection",
-                  "type": "string"
-                },
-                "recipient": {
-                  "description": "Recipient address",
-                  "type": "string"
-                },
-                "token_id": {
-                  "description": "Token id",
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Owner only method to make the account forget about certain tokens",
-          "type": "object",
-          "required": [
-            "forget_tokens"
-          ],
-          "properties": {
-            "forget_tokens": {
-              "type": "object",
-              "required": [
-                "collection",
-                "token_ids"
-              ],
-              "properties": {
-                "collection": {
-                  "description": "Contract address of the collection",
-                  "type": "string"
-                },
-                "token_ids": {
-                  "description": "Optional list of token ids to forget. If not provided, all tokens will be forgotten",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Owner only method that make the account aware of certain tokens to simplify the future queries",
-          "type": "object",
-          "required": [
-            "update_known_tokens"
-          ],
-          "properties": {
-            "update_known_tokens": {
-              "type": "object",
-              "required": [
-                "collection"
-              ],
-              "properties": {
-                "collection": {
-                  "description": "Contract address of the collection",
-                  "type": "string"
-                },
-                "limit": {
-                  "description": "Limit of the tokens to return",
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint32",
-                  "minimum": 0.0
-                },
-                "start_after": {
-                  "description": "Token id to start after",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Registry only method to update the owner to the current NFT holder",
-          "type": "object",
-          "required": [
-            "update_ownership"
-          ],
-          "properties": {
-            "update_ownership": {
-              "type": "object",
-              "required": [
-                "new_owner"
-              ],
-              "properties": {
-                "new_account_data": {
-                  "description": "New account data",
-                  "anyOf": [
-                    {
-                      "$ref": "#/definitions/Binary"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "new_owner": {
-                  "description": "Current NFT holder",
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Owner only method to update account data",
-          "type": "object",
-          "required": [
-            "update_account_data"
-          ],
-          "properties": {
-            "update_account_data": {
-              "type": "object",
-              "required": [
-                "new_account_data"
-              ],
-              "properties": {
-                "new_account_data": {
-                  "description": "New account data",
-                  "allOf": [
-                    {
-                      "$ref": "#/definitions/Binary"
-                    }
-                  ]
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Registering a token as known on receiving",
-          "type": "object",
-          "required": [
-            "receive_nft"
-          ],
-          "properties": {
-            "receive_nft": {
-              "$ref": "#/definitions/Cw721ReceiveMsg"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Registry only method to call when a token is moved to escrow",
-          "type": "object",
-          "required": [
-            "freeze"
-          ],
-          "properties": {
-            "freeze": {
-              "type": "object",
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Registry only method to call after the token is released from escrow",
-          "type": "object",
-          "required": [
-            "unfreeze"
-          ],
-          "properties": {
-            "unfreeze": {
-              "type": "object",
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Remove all the data from the contract and make it unsuable",
-          "type": "object",
-          "required": [
-            "purge"
-          ],
-          "properties": {
-            "purge": {
-              "type": "object",
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "description": "Extension",
-          "type": "object",
-          "required": [
-            "extension"
-          ],
-          "properties": {
-            "extension": {
-              "type": "object",
-              "properties": {
-                "msg": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/definitions/Empty"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
     },
     "GovMsg": {
       "description": "This message type allows the contract interact with the [x/gov] module in order to cast votes.\n\n[x/gov]: https://github.com/cosmos/cosmos-sdk/tree/v0.45.12/x/gov\n\n## Examples\n\nCast a simple vote:\n\n``` # use cosmwasm_std::{ #     HexBinary, #     Storage, Api, Querier, DepsMut, Deps, entry_point, Env, StdError, MessageInfo, #     Response, QueryResponse, # }; # type ExecuteMsg = (); use cosmwasm_std::{GovMsg, VoteOption};\n\n#[entry_point] pub fn execute( deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg, ) -> Result<Response, StdError> { // ... Ok(Response::new().add_message(GovMsg::Vote { proposal_id: 4, vote: VoteOption::Yes, })) } ```\n\nCast a weighted vote:\n\n``` # use cosmwasm_std::{ #     HexBinary, #     Storage, Api, Querier, DepsMut, Deps, entry_point, Env, StdError, MessageInfo, #     Response, QueryResponse, # }; # type ExecuteMsg = (); # #[cfg(feature = \"cosmwasm_1_2\")] use cosmwasm_std::{Decimal, GovMsg, VoteOption, WeightedVoteOption};\n\n# #[cfg(feature = \"cosmwasm_1_2\")] #[entry_point] pub fn execute( deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg, ) -> Result<Response, StdError> { // ... Ok(Response::new().add_message(GovMsg::VoteWeighted { proposal_id: 4, options: vec![ WeightedVoteOption { option: VoteOption::Yes, weight: Decimal::percent(65), }, WeightedVoteOption { option: VoteOption::Abstain, weight: Decimal::percent(35), }, ], })) } ```",
@@ -1505,7 +801,7 @@
                   "type": "string"
                 },
                 "data": {
-                  "$ref": "#/definitions/Binary"
+                  "$ref": "#/definitions/Binary2"
                 },
                 "timeout": {
                   "description": "when packet times out, measured on remote chain",
@@ -1601,19 +897,30 @@
       ],
       "properties": {
         "authenticator_data": {
-          "$ref": "#/definitions/Binary2"
+          "description": "webauthn Authenticator data",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
         },
         "client_data": {
-          "$ref": "#/definitions/ClientData"
+          "description": "Client data containg challenge, origin and type",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ClientData"
+            }
+          ]
         },
         "id": {
+          "description": "Passkey id",
           "type": "string"
         },
         "pubkey": {
           "description": "Public key is essential for verification but can be supplied on the contract side and omitted by client",
           "anyOf": [
             {
-              "$ref": "#/definitions/Binary2"
+              "$ref": "#/definitions/Binary"
             },
             {
               "type": "null"
@@ -1621,7 +928,12 @@
           ]
         },
         "signature": {
-          "$ref": "#/definitions/Binary2"
+          "description": "Secp256r1 signature",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
         },
         "user_handle": {
           "description": "Optional user handle reserved for future use",
@@ -1633,33 +945,7 @@
       },
       "additionalProperties": false
     },
-    "Secp256k1": {
-      "type": "object",
-      "required": [
-        "message",
-        "pubkey",
-        "signature"
-      ],
-      "properties": {
-        "hrp": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "message": {
-          "$ref": "#/definitions/Binary2"
-        },
-        "pubkey": {
-          "$ref": "#/definitions/Binary2"
-        },
-        "signature": {
-          "$ref": "#/definitions/Binary2"
-        }
-      },
-      "additionalProperties": false
-    },
-    "SignedActions": {
+    "SignedDataMsg": {
       "type": "object",
       "required": [
         "data",
@@ -1667,12 +953,12 @@
       ],
       "properties": {
         "data": {
-          "$ref": "#/definitions/ActionDataToSign"
+          "$ref": "#/definitions/Binary"
         },
         "payload": {
           "anyOf": [
             {
-              "$ref": "#/definitions/AuthPayload_for_Nullable_Binary"
+              "$ref": "#/definitions/AuthPayload_for_Binary"
             },
             {
               "type": "null"
@@ -1785,6 +1071,34 @@
       "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
       "type": "string"
     },
+    "UpdateOperation_for_CredentialData": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "add"
+          ],
+          "properties": {
+            "add": {
+              "$ref": "#/definitions/CredentialData"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "remove"
+          ],
+          "properties": {
+            "remove": {
+              "$ref": "#/definitions/CredentialData"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "VoteOption": {
       "type": "string",
       "enum": [
@@ -1825,7 +1139,7 @@
                   "description": "msg is the json-encoded ExecuteMsg struct (as raw Binary)",
                   "allOf": [
                     {
-                      "$ref": "#/definitions/Binary"
+                      "$ref": "#/definitions/Binary2"
                     }
                   ]
                 }
@@ -1875,7 +1189,7 @@
                   "description": "msg is the JSON-encoded InstantiateMsg struct (as raw Binary)",
                   "allOf": [
                     {
-                      "$ref": "#/definitions/Binary"
+                      "$ref": "#/definitions/Binary2"
                     }
                   ]
                 }
@@ -1926,12 +1240,12 @@
                   "description": "msg is the JSON-encoded InstantiateMsg struct (as raw Binary)",
                   "allOf": [
                     {
-                      "$ref": "#/definitions/Binary"
+                      "$ref": "#/definitions/Binary2"
                     }
                   ]
                 },
                 "salt": {
-                  "$ref": "#/definitions/Binary"
+                  "$ref": "#/definitions/Binary2"
                 }
               }
             }
@@ -1960,7 +1274,7 @@
                   "description": "msg is the json-encoded MigrateMsg struct that will be passed to the new code",
                   "allOf": [
                     {
-                      "$ref": "#/definitions/Binary"
+                      "$ref": "#/definitions/Binary2"
                     }
                   ]
                 },

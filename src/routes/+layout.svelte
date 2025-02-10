@@ -1,9 +1,10 @@
 <script lang="ts">
 	import '../app.postcss';
+	import 'material-icons/iconfont/material-icons.css';
 	
 	import Header from '$lib/components/header/header.svelte';
 	import { AppShell, Modal } from '@skeletonlabs/skeleton';
-	import { mainPage, onMountLogic } from '$lib';
+	import { bridgeTasks, onMountLogic } from '$lib';
 	import { page } from '$app/stores';
 
 	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
@@ -14,23 +15,23 @@
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
     import { modalRegistry } from '$lib/components/modals/registry';
-    import { selectedChainInfo } from '$lib/web3/chains';
 	
-
 	$: bgVariant =  "bg-magic";
 	
 	let regionPage : string = '';
 	$: if (!browser || $page.route.id == '/') {
-		mainPage.set(true);
 		regionPage = "no-scrollbar"
 	} else {
-		mainPage.set(false);
 	}
 	
 
 	initializeStores();
   	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
-	onMount(onMountLogic);
+	
+	onMount(() => {
+		onMountLogic();
+		console.log('bridgeTasks', $bridgeTasks);
+	});
 
 </script>
 
