@@ -15,14 +15,13 @@ import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { getEVMSigner } from "./signers";
 
 
-export let accountMapValue : Record<string, ParsedAccountInfo> = {};
-export const accountMap = localStorageStore<Record<string, ParsedAccountInfo>>("accountMap", accountMapValue);
-
-export const accountCreationFees = writable<Coin[]>([]);
 
 export const foundAccount = writable<string | undefined>(undefined); 
 
 export const foundAccountInfo = localStorageStore<ParsedAccountInfo | undefined>("foundAccountInfo", undefined);
+
+
+export const userAddress = writable<string>();
 
 
 
@@ -50,7 +49,7 @@ export const updateAccounts = async (
 
     for (const id of ids) {
         const res = await getAccountInfo(client, id)
-        console.log(id, " account info", res);
+        // console.log(id, " account info", res);
         if (res && res.address) {
             foundAccount.set(res.address);
             updateAccountInfo(client, res.address);
@@ -62,7 +61,6 @@ export const updateAccounts = async (
 
 
 export const updateAccountInfo = (client: CosmosClient, address: string) => {
-    if (address in accountMapValue) return;
 
     getAccountFullInfo(client, address)
     .then(res => {
@@ -92,10 +90,7 @@ export const updateAccountInfo = (client: CosmosClient, address: string) => {
             }
             
         }
-        console.log("account info", info);
         foundAccountInfo.set(info)
-        accountMapValue[info.address] = info;
-        accountMap.set(accountMapValue);
     })
     .catch(console.error);
 }

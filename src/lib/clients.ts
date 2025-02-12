@@ -72,6 +72,7 @@ export const getEthClient = async (chainId: string = BASE_ID) => {
     const client = wagmi.wagmiConfig.getClient({ chainId: Number(chainId) });
     ethClientValueMap[chainId] = client;
     ethClient.set(client);
+    return client;
 }
 
 

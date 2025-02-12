@@ -83,7 +83,7 @@ export const ALL_ETH : CosmosToken = {
     denom: "ibc/E39239AE88D45746100FA4A9B3E1E29008CADF8AC2CAD4132A7609655AE323EB",
     originalDenom: "factory/osmo1k6c8jln7ejuqwtqmay3yvzrg3kueaczl96pk067ldg8u835w0yhsw27twm/alloyed/allETH",
     name: "Eth",
-    fullName: "(IBC) ETH",
+    fullName: "(Alloyed) ETH",
     symbol: "ETH",
     meta: ETH_INPUT,
 }
@@ -103,7 +103,7 @@ export const ALL_SOL : CosmosToken = {
     denom: "ibc/BF7BDD572D446678B527325A712AF2B5B68B49A4D8159FDF14D7389DB5269C67",
     originalDenom: OSMO_SOL.denom,
     name: "Sol",
-    fullName: "(IBC) SOL",
+    fullName: "(Alloyed) SOL",
     symbol: "SOL",
     decimals: 9,
     meta: SOL_INPUT,
@@ -115,7 +115,7 @@ export const WST_ETH : CosmosToken = {
     decimals: 18,
     denom: "factory/neutron1ug740qrkquxzrk2hh29qrlx3sktkfml3je7juusc2te7xmvsscns0n2wry/wstETH",
     name: "wstEth",
-    fullName: "Wrapped Staked ETH",
+    fullName: "Staked ETH",
     symbol: "wstETH",
     meta: WST_ETH_INPUT
 }
@@ -126,7 +126,7 @@ export const AXL_USDC : CosmosToken = {
     decimals: 6,
     denom: "ibc/F082B65C88E4B6D5EF1DB243CDA1D331D002759E938A0F5CD3FFDC5D53B3E349",
     name: "Usdc",
-    fullName: "(IBC) Axelar USDC",
+    fullName: "Axelar USDC",
     symbol: "axlUSDC",
     meta: USDC_INPUT,
 }
@@ -137,7 +137,7 @@ export const AXL_ETH : CosmosToken = {
     decimals: 18,
     denom: "ibc/A585C2D15DCD3B010849B453A2CFCB5E213208A5AB665691792684C26274304D",
     name: "Eth",
-    fullName: "(IBC) Axelar ETH",
+    fullName: "Axelar ETH",
     symbol: "axlwETH",
     meta: ETH_INPUT,
 }
@@ -149,7 +149,7 @@ export const NOBLE_USDC : CosmosToken = {
     decimals: 6,
     denom: "ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81",
     name: "Usdc",
-    fullName: "(IBC) Noble USDC",
+    fullName: "Noble USDC",
     symbol: "USDC",
     meta: USDC_INPUT,
 }
@@ -173,7 +173,7 @@ export const BASE_WETH : Token = {
     denom: "0x4200000000000000000000000000000000000006",
     name: "wEth",
     symbol: "WETH",
-    fullName: "Wrapped Eth",
+    fullName: "Wrapped ETH",
     meta: ETH_INPUT,
 }
 
@@ -184,7 +184,7 @@ export const BASE_USDC : Token = {
     denom: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     name: "Usdc",
     symbol: "USDC",
-    fullName: "Base USDC",
+    fullName: "USDC",
     meta: USDC_INPUT,
 }
 
@@ -194,7 +194,7 @@ export const BASE_AXL_USDC : Token = {
     denom: "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
     name: "axlUsdc",
     symbol: "axlUSDC",
-    fullName: "Axelar Wrapped USDC",
+    fullName: "Axelar USDC",
     meta: USDC_INPUT,
 }
 
@@ -260,17 +260,13 @@ export const SOLANA_USDC : Token = {
  */
 
 
-
-export const getSourceTokens = (chain: Chain) : Token[] => {
-    if (chain.id === BASE_ID) {
-        return [BASE_ETH, BASE_WETH, BASE_USDC];
-    } else if (chain.id === SOLANA_ID) {
-        return [SOLANA_USDC];
-    } else {
-        console.error("Chain not found", chain.name);
-        return [];
-    }
+export const BaseTokenMap = {
+    [BASE_ETH.denom]: BASE_ETH,
+    [BASE_WETH.denom]: BASE_WETH,
+    [BASE_USDC.denom]: BASE_USDC,
+    [BASE_AXL_USDC.denom]: BASE_AXL_USDC,
 }
+
 
 export const NeutronTokenMap = {
     [NTRN.denom]: NTRN,
@@ -283,29 +279,26 @@ export const NeutronTokenMap = {
 }
 
 
+export const AllTokensMap = {
+    ...BaseTokenMap,
+    ...NeutronTokenMap,
+}
 
-export const getDestinationTokens = (token: Token) : Token[] => {
 
-    return Object.values(NeutronTokenMap);
-
-    if (token.denom === SOLANA_USDC.denom) return [NTRN, NOBLE_USDC];
-    else if (token.denom === BASE_ETH.denom) return [NTRN, ALL_ETH, WST_ETH, NOBLE_USDC];
-    else if (token.denom === BASE_WETH.denom) return [NTRN, ALL_ETH, WST_ETH, NOBLE_USDC];
-    else if (token.denom === BASE_USDC.denom) return [NOBLE_USDC, NTRN];
-    else {
-        console.error("Token not found", token);
+export const getInTokens = (chain: Chain) : Token[] => {
+    if (chain.id === BASE_ID) {
+        return [BASE_ETH, BASE_WETH, BASE_USDC];
+    } else if (chain.id === SOLANA_ID) {
+        return [SOLANA_USDC];
+    } else {
+        console.error("Chain not found", chain.name);
         return [];
     }
 }
 
-
-
-export const inToken = writable<Token>(BASE_ETH);
-export const outAddress = writable<string>();
-
-
-export const outTokens = derived([inToken, outAddress], ([inToken, outAddress]) => {
-
-    if (inToken.denom == BASE_ETH.denom) return Object.values(NeutronTokenMap);
-    return getDestinationTokens(inToken);
-});
+export const getOutTokens = (chain: Chain) : Token[] => {
+    if (chain.id === SOLANA_ID) {
+        return [NOBLE_USDC]
+    }
+    return Object.values(NeutronTokenMap);
+}

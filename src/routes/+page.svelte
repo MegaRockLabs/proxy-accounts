@@ -2,16 +2,18 @@
 	import Container from '$lib/components/common/container.svelte';
   import Separator from '$lib/components/common/separator.svelte';
   import ElevatedBox from '$lib/components/common/elevatedBox.svelte';
-  import DashHeader from '$lib/components/dashHeader.svelte';
+  import DashHeader from '$lib/components/common/dashHeader.svelte';
   import ElevatedButtonBox from '$lib/components/common/elevatedButtonBox.svelte';
 
   import { getModalStore } from '@skeletonlabs/skeleton';
-  import { foundAccountInfo } from '$lib//accounts';
+  import { foundAccountInfo, userAddress } from '$lib//accounts';
   import { accountBalances } from '$lib//assets';
 
   const modalStore = getModalStore();
 
   $: hasAccount = Boolean($foundAccountInfo);
+
+  $: console.log('accountBalances', $accountBalances);
 
   const createClick = () => {
     modalStore.trigger({
@@ -85,16 +87,20 @@
 
     {/if}
 
+    { #if foundAccountInfo }
+      
+      <div class="flex w-full justify-end gap-5 mt-5">
+        <ElevatedButtonBox onClick={deposit} small={false}>
+          Deposit
+        </ElevatedButtonBox>
 
-    <div class="flex w-full justify-end gap-5 mt-5">
-      <ElevatedButtonBox onClick={deposit} small={false}>
-        Deposit
-      </ElevatedButtonBox>
+        <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x')}>
+          Withdraw
+        </ElevatedButtonBox>
+      </div>
+    {/if }
 
-      <ElevatedButtonBox onClick={withdraw} small={false}>
-        Withdraw
-      </ElevatedButtonBox>
-    </div>
+    <Separator size={5} />
 
 
 </Container>

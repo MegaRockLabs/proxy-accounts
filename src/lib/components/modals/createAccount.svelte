@@ -4,27 +4,29 @@
   import ElevatedBox from "../common/elevatedBox.svelte";
 	import GhostBox from '$lib/components/common/ghostBox.svelte';
   
-  import { Noble, Osmosis, selectedChain } from '$lib/chains';
-  import { getModalStore, ListBox, ListBoxItem, popup, type PopupSettings } from "@skeletonlabs/skeleton";
+  import { selectedChain } from '$lib/chains';
+  import { getModalStore } from "@skeletonlabs/skeleton";
   
+  import type { Coin } from '@cosmjs/stargate';
+  import type { Credential, CredentialData } from 'smart-account-auth';
   import type { Chain, CosmosToken, Token } from '$lib/types';
-  import { BASE_ID, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY, SKIP_COMMON, SOLANA_ID } from '$lib/vars';
-  import { getSourceTokens, getDestinationTokens } from '$lib/tokens';
+
+  import { chainIdsToAddresses, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY, SKIP_COMMON } from '$lib/vars';
+  import { getInTokens, NTRN } from '$lib/tokens';
   
-  import { createAccount, updateAccounts } from '$lib/accounts';
-  import { type BridgeType, type EstimatedFee, type RouteRequest, type RouteRequestBase, type RouteResponse, type SwapVenue } from '@skip-go/client';
+  import { createAccount, foundAccountInfo } from '$lib/accounts';
   import { cosmosClient, relayingClient, skipClient } from '$lib/clients';
-  import { formatEther, formatUnits, parseUnits } from 'viem';
-  import { getPrice as getTokenPrice } from '$lib/prices';
-  import { getEthBalance, getSolBalance } from '$lib/assets';
-  import { address } from '$lib/appkit';
+  import { formatEther } from 'viem';
+  import { userAddress } from '$lib/accounts';
   import { getWagmiConnector, relayingAddress, wagmiAdapter } from '$lib/signers';
   import { signMessage } from '@wagmi/core';
-  import type { Credential, CredentialData, EthPersonalSign } from 'smart-account-auth';
   import { accountCreationFees } from '$lib/registry';
-  import type { Coin } from '@cosmjs/stargate';
-  import { AstroportVenue, BaseUniswapVenue } from '$lib/routes';
-  import { bridgeTasks, updateBridgeTask, type BridgeTask } from '$lib';
+  import { directRes, executeRoute, setDirectResponse, setRouteValues } from '$lib/routes';
+  import InTokens from '../common/inTokens.svelte';
+  import OutTokens from '../common/outTokens.svelte';
+  import InTokenInput from '../common/inTokenInput.svelte';
+  import OutTokenButton from '../common/outTokenButton.svelte';
+  import { inToken, inValue, outToken, routeValues, updateInToken, updateOutToken } from '$lib/values';
 
   export let parent: any = {} 
   if (parent) {}
@@ -34,282 +36,59 @@
 
 
   let loading = false;
-  let loadingOut = false;
   
   let inChain : Chain;
   let inTokens : Token[] = [];
-  let inToken : Token;
-  let inValue : number = 0;
-  let inPrice : number = 0;
-  let inUSD : number = 0;
-  let inBalance : string = "0";
-
   let outTokens : CosmosToken[] = [];
-  let outToken : CosmosToken = outTokens[0];
-  let outValue : number = 0;
-  let outPrice : number = 0;
-  let outUSD : number = 0;
-  let outOriginal : number = 0;
-
-  let bridgeValue : number = 0;
-  let bridgeUSD : number = 0;
-
-  let gasFeeValue : number = 0;
-  let gasFeeUSD : number = 0;
-
-  let goFast : boolean = true;
-  let lastRoute : RouteResponse | null = null;
-  let routeTxs : number = 0;
-  let routeSecs : number = 0;
-
-  let fromIn : boolean = true;
-  let requiredAddresses : string[] = [];
-
-  $: inParsed = inToken ? parseUnits(inValue.toString(), inToken.decimals).toString() : "0";
-
-  const isRouteSame = () => {
-    return lastRoute &&
-      lastRoute.sourceAssetChainID == inToken.originalChain &&
-      lastRoute.sourceAssetDenom == inToken.denom &&
-      lastRoute.destAssetDenom == outToken.denom
-  }
 
   // 0.00007381847388687
-  
-  const resetRouteValues = () => {
-    fromIn = true;
-    loading = false;
-    routeSecs = 0;
-    routeTxs = 0;
-    outOriginal = 0;
-    bridgeValue = 0
-    bridgeUSD = 0;
-    requiredAddresses = [];
-
-    if (!inPrice || !outPrice) updatePrices();
-
-    if (!isRouteSame() || lastRoute?.amountIn.length != inParsed.length) {
-      gasFeeValue = 0;
-      gasFeeUSD = 0;
-    }
-  }
-
-  const updateOutToken = async (token: CosmosToken, assign: boolean = true) => {
-    if (assign) {
-      outToken = token;
-      outValue = 0;
-    } else {
-      //outValue = token.meta.default;
-    }
-    if (outToken.meta.isUsd) {
-      outPrice = 1;
-    } else {
-      outPrice = await getTokenPrice(outToken.meta.geckoName)
-    }
-  } 
-
-  $: console.log('inBalance', inBalance, inToken?.name)
-
-  const updateInToken = async (token: Token, assign: boolean = true) => {
-    if (assign) {
-      inToken = token;
-    }
-    if (inChain.id == SOLANA_ID) {
-      getSolBalance(token.denom).then(balance => inBalance = balance);
-    } else {
-      const tokenAddr = token.symbol == "ETH" ? token.symbol : token.denom;
-      getEthBalance($wagmiAdapter, inChain.id, $address, tokenAddr)
-        .then(balance => inBalance = balance);
-    }
-    fromIn = true;
-    inValue = inToken.meta.default;
-    outTokens = getDestinationTokens(inToken);
-    updateOutToken(outTokens[0]);
-    if (inToken.meta.isUsd) {
-      inPrice = 1;
-    } else {
-      inPrice = await getTokenPrice(inToken.meta.geckoName)
-    }
-  }
 
   const updateChain = async (chain: Chain) => {
     inChain = chain;
-    inTokens = getSourceTokens(inChain);
-    updateInToken(inTokens[0]);
-  }
-
-
-  const updateUsds = () => {
-    console.log('updating usds')
-    inUSD = inValue * inPrice;
-    outUSD = outValue * outPrice;
-    gasFeeUSD = gasFeeValue * inPrice;
-    const big = parseUnits(bridgeValue.toString(), inToken.decimals)
-    bridgeUSD = Number(big) * inPrice;
-  }
-
-
-  
-
-  const updatePrices = async () => {
-    if (inToken.meta.isUsd) {
-      inPrice = 1;
-    } else {
-      inPrice = await getTokenPrice(inToken.meta.geckoName)
-    }
-    if (outToken.meta.isUsd) {
-      outPrice = 1;
-    } else {
-      outPrice = await getTokenPrice(outToken.meta.geckoName)
-    }
-  }
-
-  
-  const updateBridgeFee = (fees: EstimatedFee[]) => {
-    const feeLength = fees.length;
-    for (const fee of fees) {
-      const denom = fee.originAsset.denom;
-      bridgeUSD += parseFloat(fee.usdAmount);
-      if (feeLength == 1 && 
-        (denom == inToken.denom || 
-          (inToken.meta.isEth && denom.endsWith("-native")
-        )) 
-      ) {
-        bridgeValue = parseFloat(formatUnits(BigInt(fee.amount), inToken.decimals));
-      } 
-    }
-    if (!bridgeValue) {
-      bridgeValue = bridgeUSD / inPrice;
-    }
+    inTokens = getInTokens(inChain);
+    outTokens = [NTRN];
+    
+    updateInToken($routeValues ?? {}, inTokens[0])
+    .then(val => {
+      if (outTokens.length) updateOutToken(val, NTRN);
+    });
 
   }
 
-  const idToChain = (id: string, neutronRelay: boolean = false) => {
-    if (id == NEUTRON_ID) {
-      if (neutronRelay) return $relayingAddress; // neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3
-      return NEUTRON_REGISTRY;
-    }
-    else if (id == Osmosis.id) return "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy";
-    else if (id == Noble.id) return "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c";
-    else return $address;    
-  }
 
-  let userAddresses : { chainID: string, address: string }[];
-  
-  const updateRoute = async () => {
+  const calculateDirectMessages = async () => {
+    const values = $routeValues;
+    if (!ethCredential) await clickAddEth();
+    console.log('values', values);
+    if (!values) return;
+    
+    loading = true;
+    const sourceAssetChainID = values.inToken.originalChain;
+    chainIdsToAddresses[sourceAssetChainID] = $userAddress;
+    chainIdsToAddresses[NEUTRON_ID] = NEUTRON_REGISTRY;  
 
-    if (isRouteSame() && lastRoute!.amountIn == inParsed) return;
-
-    const base : RouteRequestBase = {
+    $skipClient.msgsDirect({
       ...SKIP_COMMON,
       destAssetChainID: NEUTRON_ID,
-      destAssetDenom: outToken.denom,
-      sourceAssetDenom: inToken.denom,
-      sourceAssetChainID: inToken.originalChain,
-      goFast
-    }
-
-    let params : RouteRequest;
-
-    if (fromIn) {
-      console.log("calculating using in", inValue, inToken.name)
-      loading = true;
-      params = { 
-        ...base, 
-        amountIn: inParsed 
-      };
-    } else {
-      console.log("calculating using out", outValue, outToken.name)
-      loadingOut = true;
-      params = { 
-        ...base, 
-        amountOut: parseUnits(outValue.toString(), outToken.decimals).toString() 
-      };
-    }
-
-    try {
-      console.log('reseting on new route')
-      resetRouteValues();
-
-      const route = await $skipClient.route(params)
-
-      userAddresses = await Promise.all(
-        route.requiredChainAddresses
-        .map(async (chainID) => ({ chainID, address: idToChain(chainID)}))
-      );
-
-      console.log('userAddresses', userAddresses)
-      lastRoute = route;
-      console.log('route', route)
-      requiredAddresses = route.requiredChainAddresses;
-      
-      await updatePrices();
-      
-      const newIn = formatUnits(BigInt(route.amountIn), inToken.decimals).toString();
-      const newOut = formatUnits(BigInt(route.amountOut), outToken.decimals).toString();
-      console.log('old in', inValue);
-      console.log('new in', newIn);
-  
-      console.log('\nold out', outValue);
-      console.log('new out', newOut);
-  
-      if (fromIn || !outValue) {
-        outValue = parseFloat(newOut);
-      } else if (!inValue){
-        inValue = parseFloat(newIn);
+      destAssetDenom:  values.outToken.denom,
+      sourceAssetDenom: values.inToken.denom,
+      sourceAssetChainID: values.inToken.originalChain,
+      amountIn: values.inParsed.toString(),
+      slippageTolerancePercent: "5",
+      chainIdsToAddresses,
+      postRouteHandler: {
+        wasmMsg: {
+          contractAddress: NEUTRON_REGISTRY,
+          msg: JSON.stringify(createMsg)
+        }
       }
-      
-      console.log('outValue', outValue, "* outPrice", outPrice, '=', outValue * outPrice);
-      outUSD = outValue * outPrice;
-      inUSD = inValue * inPrice;
-  
-      // calculate how much out in original token using inPrice
-      outOriginal = (outUSD / inPrice);
-      console.log('outUSD', outUSD, '/ inPrice', inPrice, '= outOriginal', outOriginal);
-  
-      routeSecs = route.estimatedRouteDurationSeconds;
-      routeTxs = route.txsRequired;
-      updateBridgeFee(route.estimatedFees);
-
-      console.log("inUSD", inUSD, "vs routeIn", route.usdAmountIn)
-      console.log("outUSD", outUSD, "vs routeOut", route.usdAmountOut)
-      console.log("myDiff", inUSD - outUSD, "vs routeBridge", parseFloat(route.usdAmountIn!) - parseFloat(route.usdAmountOut!))
-      console.log("\ninOriginal", inValue, "vs outOriginal", outOriginal)
-
-      fromIn = true;
-      loading = false;
-      loadingOut = false;
-      
-      return route;
-
-    } catch (e) {
-      console.error('Error updating route', e);
-      lastRoute = null;
-      resetRouteValues();
-    }
+    })
+    .then(dirRes => setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID, undefined, feeCoin))
+    .then(vals => console.log('Direct messages calculated:', vals))
+    .catch(e => console.error('Error calculating direct messages', e))
+    .finally(() => loading = false)
   }
 
-  const executeRoute = async () => {
-    if (!lastRoute || !userAddresses) return;
-    
-    await $skipClient.executeRoute({
-      route: lastRoute,
-      userAddresses,
-      // Executes after all of the operations triggered by a user's signature complete.
-      onTransactionCompleted: async (chainID, txHash, status) => {
-        console.log(
-          `Route completed with tx hash: ${txHash} & status: ${status.state}`
-        );
-      },
-      onTransactionBroadcast: async ({ txHash, chainID }) => {
-        console.log(`Transaction broadcasted with tx hash: ${txHash}`);
-      },
-      onTransactionTracked: async ({ txHash, chainID }) => {
-        console.log(`Transaction tracked with tx hash: ${txHash}`);
-      },
-    });
-    
-  }
 
   $: message = JSON.stringify({
     chain_id: NEUTRON_ID,
@@ -348,10 +127,7 @@
     clickCreate();
   }
 
-  $: feeCoin = $accountCreationFees.length > 0 
-    ? $accountCreationFees.find((fee : Coin) => fee.denom === NEUTRON_DENOM)!
-    : { denom: 'untrn', amount: '0' };
-
+  $: feeCoin = $accountCreationFees.find((fee : Coin) => fee.denom === NEUTRON_DENOM)!
 
   let createMsg : any;
 
@@ -367,377 +143,97 @@
       { denom: feeCoin!.denom, amount: feeCoin!.amount },
       accountData,
       true
-    ) 
+    );
     createMsg = msg;
     console.log('create msg', msg);
   };  
 
 
-  const calculateMessages = async () => {
 
-    if (!lastRoute) await updateRoute();
-    const route = lastRoute!;
-    
-    $skipClient.messages({
-      ...SKIP_COMMON,
-      destAssetChainID: NEUTRON_ID,
-      destAssetDenom: outToken.denom,
-      sourceAssetDenom: inToken.denom,
-      sourceAssetChainID: inToken.originalChain,
-      amountIn: inParsed,
-      amountOut: route.amountOut,
-      slippageTolerancePercent: "10",
-      operations: route.operations,
-      estimatedAmountOut: route.estimatedAmountOut,
-      addressList: route.requiredChainAddresses.map(chainID => idToChain(chainID)),
-    })
-    .then(withPostMsgs => console.log('message', withPostMsgs))
-    .catch(e => console.error('Error calculating  post messages', e));
-
+  const createClick = async () => {
+    const values = $routeValues;
+    const direct = $directRes;
+    if (!values || !direct || direct.txs.length != 1) return;
     if (!createMsg) await clickAddEth();
     
-    try {
-      
-      const withPostMsgs = await $skipClient.messages({
-        ...SKIP_COMMON,
-        destAssetChainID: NEUTRON_ID,
-        destAssetDenom: outToken.denom,
-        sourceAssetDenom: inToken.denom,
-        sourceAssetChainID: inToken.originalChain,
-        amountIn: inParsed,
-        amountOut: route.amountOut,
-        slippageTolerancePercent: "10",
-        operations: route.operations,
-        estimatedAmountOut: route.estimatedAmountOut,
-        addressList: route.chainIDs.map(chainID => idToChain(chainID)),
-        postRouteHandler: {
-          wasmMsg: {
-            contractAddress: NEUTRON_REGISTRY,
-            msg: JSON.stringify(createMsg)
-          }
-        }
-      });
-      console.log('message', withPostMsgs);
-
-    } catch (e) {
-      console.error('Error calculating  post messages', e);
-    }
+    executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient)
+    .then(() => modalStore.clear())
+    .catch(e => console.error('Error withdrawing', e))
+    .finally(() => loading = false);
 
   }
-
-  const calculateDirectMessages = async () => {
-
-
-    $skipClient.msgsDirect({
-      ...SKIP_COMMON,
-      destAssetChainID: NEUTRON_ID,
-      destAssetDenom: outToken.denom,
-      sourceAssetDenom: inToken.denom,
-      sourceAssetChainID: inToken.originalChain,
-      amountIn: inParsed,
-      slippageTolerancePercent: "10",
-      goFast,
-      chainIdsToAddresses: {
-        [NEUTRON_ID]: NEUTRON_REGISTRY,
-        "noble-1": "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c",
-        "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
-        [inToken.originalChain]: $address
-      },
-    })
-    .then(withPostMsgs => console.log('message direct empty', withPostMsgs))
-    .catch(e => console.error('Error calculating  post messages', e));
-
-
-    if (!createMsg) await clickAddEth();
-    
-    try {
-
-      let swapVenues: SwapVenue[] | undefined = undefined;
-      let bridges: BridgeType[] | undefined = undefined;
-
-      if (goFast) {
-
-      } else {
-
-        if (inChain.id == BASE_ID && outToken.denom == "untrn") {
-          swapVenues = [BaseUniswapVenue, AstroportVenue]
-        }
-      }
-      
-
-      const withPostMsgs = await $skipClient.msgsDirect({
-        ...SKIP_COMMON,
-        destAssetChainID: NEUTRON_ID,
-        destAssetDenom: outToken.denom,
-        sourceAssetDenom: inToken.denom,
-        sourceAssetChainID: inToken.originalChain,
-        amountIn: inParsed,
-        slippageTolerancePercent: "8",
-        swapVenues,
-        bridges,
-        goFast,
-        chainIdsToAddresses: {
-          [NEUTRON_ID]: NEUTRON_REGISTRY,
-          "noble-1": "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c",
-          "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
-          [inToken.originalChain]: $address,
-        },
-        postRouteHandler: {
-          wasmMsg: {
-            contractAddress: NEUTRON_REGISTRY,
-            msg: JSON.stringify(createMsg)
-          }
-        }
-      });
-
-      console.log('message direct', withPostMsgs);
-
-      const route = withPostMsgs.route;
-
-      const newIn = formatUnits(BigInt(route.amountIn), inToken.decimals).toString();
-      const newOut = formatUnits(BigInt(route.amountOut), outToken.decimals).toString();
-
-      inValue = parseFloat(newIn);
-      outValue = parseFloat(newOut);
-      outUSD = outValue * outPrice;
-      inUSD = inValue * inPrice;
-  
-      // calculate how much out in original token using inPrice
-      outOriginal = (outUSD / inPrice);
-      routeSecs = route.estimatedRouteDurationSeconds;
-      lastRoute = route;
-
-      console.log('inUSD', inUSD, 'outUSD', outUSD, 'bridgeUSD', bridgeUSD);
-
-      const twoNeutron = lastRoute.requiredChainAddresses.filter(chainID => chainID == NEUTRON_ID).length == 2;
-      const rcaCount = lastRoute.requiredChainAddresses.length;
-
-      userAddresses = lastRoute.requiredChainAddresses.map((chainID, i) => ({
-        chainID,
-        address: idToChain(chainID, twoNeutron && i != rcaCount - 1)
-      }));
-
-      console.log('userAddresses', userAddresses);
-      
-      $skipClient.executeTxs({
-        txs: withPostMsgs.txs,
-        route: withPostMsgs.route,
-        userAddresses,
-        // afterMsg: after.multiChainMsg,
-        onTransactionCompleted: async (chainID, txHash, txStatus) => {
-          console.log(
-            `Route completed status on chainID ${chainID}:`, txStatus
-          );
-          updateBridgeTask(txHash, { txStatus });
-          const cred = ethCredential as { eth_personal_sign: EthPersonalSign }
-          updateAccounts($cosmosClient, cred.eth_personal_sign.signer)
-
-        },
-        onTransactionBroadcast: async ({ txHash, chainID }) => {
-          console.log(`Transaction broadcasted with tx hash: ${txHash}`);
-
-          bridgeTasks.update(tasks => {
-            const task : BridgeTask = {
-              inAddress: $address,
-              inAmount: inValue.toString(),
-              inToken: inToken,
-              txId: txHash,
-
-              outAmount: outValue.toString(),
-              outToken: outToken,
-              outAddress: NEUTRON_REGISTRY,
-              outChainId: NEUTRON_ID,
-
-              status: "broadcasted",
-              bridgeType: "AXELAR",
-              accCreation: true
-            }
-            tasks.push(task);
-            return tasks;
-          });
-
-        },
-        onTransactionTracked: async ({ txHash, explorerLink }) => {
-          console.log(`Transaction tracked with tx hash: ${txHash}`);
-          updateBridgeTask(txHash, { explorerLink });
-        },
-      });
-
-    } catch (e) {
-      console.error('Error calculating  post messages', e);
-    }
-  }
-
 
 
   const clickCancel = () => {
 		modalStore.clear();
 	};
 
-  const payTokens: PopupSettings = {
-    event: 'click',
-    target: 'payTokens',
-    placement: 'bottom',
-    closeQuery: '.listbox-item'
-  };
-
-  const recieveTokens: PopupSettings = {
-    event: 'click',
-    target: 'recieveTokens',
-    placement: 'bottom',
-    closeQuery: '.listbox-item'
-  };
-
-
-  // reset bridge values on change if not calculating route
-  //$: if (!loading && (inToken || outToken || inValue || outValue)) debounce(resetRouteValues)
-
-  // detect which out of the values was changed last
-  $: if (inValue) fromIn = true;
-  $: if (outValue) fromIn = false;
-
-
-  $: if (inToken || outToken) updatePrices()
-
-  // update USD values for all values  
-  $: if ((inValue || outValue) && inPrice && outPrice) updateUsds()
 
   // reset all available tokens on chain change
   $: if ($selectedChain) updateChain($selectedChain)
 
+  $: if ($inToken || $outToken || $inValue)  directRes.set(null);
+
 </script>
 
 
-<div data-popup="payTokens" class="card shadow-xl z-50 bg-secondary-backdrop-token">
-  
-  <ListBox rounded="rounded-none">
-
-    { #each inTokens as token (token.denom)}
-      
-      <ListBoxItem bind:group={inToken} name="intoken" value={token} on:change={() => updateInToken(token, false)}>
-        <div class="flex gap-5 justify-between items-center ">
-          <img src="{token.meta.logo}" alt="{token.symbol} logo" class="w-5 h-5" />
-          <div class="flex w-full justify-center">
-            {token.fullName}
-          </div>
-        </div>
-      </ListBoxItem>
-
-    { /each }
-
-  </ListBox>
-
-</div>  
+<InTokens tokens={inTokens} />
+<OutTokens tokens={outTokens} />
 
 
-<div data-popup="recieveTokens" class="card shadow-xl z-50 bg-secondary-backdrop-token">
-
-  <ListBox rounded="rounded-none" >
-
-    { #each outTokens as token (token.denom)}
-
-      <ListBoxItem bind:group={outToken} name="outoken" value={token} on:change={() => updateOutToken(token, false)}>
-        <div class="flex gap-5 justify-between items-center">
-          <img src="{token.meta.logo}" alt="{token.symbol} logo" class="w-5 h-5" />
-          <div class="flex w-full justify-center">
-            {token.fullName}
-          </div>
-        </div>
-      </ListBoxItem>
-
-    { /each }
-
-  </ListBox>
-
-</div>  
-
-
-<GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5">
+<GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5 overflow-auto max-h-screen">
 
   <ElevatedBox styles="p-3"><h3 class="text-md font-bold">Transfer</h3></ElevatedBox>
+
+   {#if $inToken && $routeValues  }
+
+   { @const { outUSD, outToken, outValue } = $routeValues }
 
 
     <div class="pu-5 pb-3 px-3 flex flex-col justify-between gap-5">
 
-      <div class="border border-grey-100 rounded-container-token relative">
-        <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="pay">Pay</label>
-        <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${inUSD.toFixed(2)} )</span>
-        <div class="flex w-full justify-between items-stretch ">
-          <input 
-            id="pay" type="number" class="p-7 flex w-full bg-transparent border-none text-lg" 
-            step={inToken.meta.min} min={inToken.meta.min} bind:value={inValue}
-          />
-          <button class="btn variant-ghost-primary w-48 gap-2 justify-center items-center px-5" use:popup={payTokens}>
-            <img src="{inToken.meta.logo}" alt="{inToken.name} logo" class="w-8 h-8" />
-            <div class="flex flex-col gap-2">
-              <span>{inToken.symbol}</span>
-              <span class="text-xs text-zinc-300">{$selectedChain.name}</span>
+      <InTokenInput disabled={loading} />
+
+      { #if outToken && outTokens.length }
+
+        <div class="relative py-2">
+          <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="recieve">Recieve</label>
+          <div class="flex w-full justify-between items-stretch ">
+
+            <div class="border-b border-grey-100 text-lg p-7 w-full flex gap-3">
+              <span>
+                {outValue || "឴"}
+              </span>
+
+              { #if outUSD && outUSD != "0.00" }
+                <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${outUSD} )</span>
+              { /if }
+              
             </div>
-            <span class="material-icons-round">arrow_drop_down</span>
-          </button> 
-        </div>
-      </div>
 
-      <div class="border border-grey-100 rounded-container-token relative">
-        <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="recieve">Recieve</label>
-        <div class="flex w-full justify-between items-stretch ">
-          <input 
-            id="recieve" type="number" class="p-7 flex w-full bg-transparent border-none text-lg" 
-            step="0.1" min={outToken.meta.min} bind:value={outValue}
-          />
-          { #if outUSD }
-            <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${outUSD.toFixed(2)} )</span>
-          {/if}
-          <button class="btn variant-ghost-primary w-48  gap-2 justify-center items-center px-5" use:popup={recieveTokens}>
-            <img src="{outToken.meta.logo}" alt="{outToken.name}logo" class="w-8 h-8" />
-            <div class="flex flex-col gap-2">
-              <span>{outToken.symbol}</span>
-            </div>
-            <span class="material-icons-outlined">arrow_drop_down_circle</span>
-          </button>
-        </div>
-      </div>
+            <OutTokenButton disabled={loading} />
 
-      <div class="flex w-full justify-end">
-        <div class="flex gap-5">
-          <label for="go">Enable GO</label>
-          <input id="go" type="checkbox" bind:checked={goFast} class="form-checkbox h-5 w-5 text-primary-500" />
+          </div>
         </div>
 
-      </div>
+      {/if}
+        
+    </div>
 
-      <div>
-        <ElevatedButtonBox onClick={updateRoute} >
-          Calculate Route
-        </ElevatedButtonBox>
+  {/if}
   
-        <ElevatedButtonBox onClick={executeRoute} >
-          Execute Route
-        </ElevatedButtonBox>
-      </div>
 
-      <div>
-        <ElevatedButtonBox onClick={calculateMessages} >
-          Calculate Messages
-        </ElevatedButtonBox>
+  <div>
+    <ElevatedButtonBox onClick={calculateDirectMessages} >
+      Calculate Direct
+    </ElevatedButtonBox>
 
-        <ElevatedButtonBox onClick={calculateDirectMessages} >
-          Calculate Direct
-        </ElevatedButtonBox>
-      </div>
+    <ElevatedButtonBox onClick={createClick} >
+      Create Account
+    </ElevatedButtonBox>
+  </div>
 
-      <div>
-        <ElevatedButtonBox onClick={clickAddEth} >
-          Sign Proof
-        </ElevatedButtonBox>
-
-        <ElevatedButtonBox onClick={clickCreate} >
-          Create Account
-        </ElevatedButtonBox>
-      </div>
-
-      
-
+  
       <!--  
 
       <div class="border-t border-b border-zinc-400 bg-primary-backdrop-token py-5 px-7 flex flex-col gap-5 ">
@@ -794,19 +290,19 @@
         
       </div>
 
-
-    </div>
+      -->
     
-    -->
 
-    <div class="my-5 border-t border-white/20"></div>
+  <div class="my-5 border-t border-white/20"></div>
 
-    <div class="flex justify-between items-center px-2">
-      <div class="flex gap-2">
-        <ElevatedButtonBox selected onClick={clickCancel}>Cancel</ElevatedButtonBox>
-        <ElevatedButtonBox onClick={calculateDirectMessages} >
-          Deposit
-        </ElevatedButtonBox>
-      </div>
+  <div class="flex justify-between items-center px-2">
+    <div class="flex gap-2">
+      <ElevatedButtonBox selected onClick={clickCancel}>Cancel</ElevatedButtonBox>
+      <ElevatedButtonBox onClick={calculateDirectMessages} >
+        Deposit
+      </ElevatedButtonBox>
+    </div>
   </div>
+
+  
 </GhostBox>

@@ -12,7 +12,7 @@ import type { OfflineAminoSigner } from "@keplr-wallet/types";
 import type { SolanaAdapter } from '@reown/appkit-adapter-solana'
 import type { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { universalProvider } from "./appkit";
-import { SOLANA_ID } from "./vars";
+import { BASE_ID, SOLANA_ID } from "./vars";
 
 export const relayingAddress = writable<string>();
 export const relayingSigner = writable<Secp256k1HdWallet>();
@@ -73,13 +73,11 @@ export const getCosmosSigner = async (_chainId: string) : Promise<OfflineAminoSi
         ? cosmosAdapter 
         : (await Secp256k1HdWallet.fromMnemonic(PUBLIC_RELAYING_MNEMONIC, { prefix } ))
 
-    const acc = await signer.getAccounts();
-
     return signer;
 }
 
 
-export const getEVMSigner = async (chainId: string) : Promise<WalletClient>  => {
+export const getEVMSigner = async (chainId: string = BASE_ID) : Promise<WalletClient>  => {
     const wagmi = wagmiValue ?? get(wagmiAdapter);
     const config = wagmi.wagmiConfig;
     const connector = await getWagmiConnector(wagmi);
@@ -109,7 +107,6 @@ export const getEVMSigner = async (chainId: string) : Promise<WalletClient>  => 
 
 export const getSVMSigner = async ()  : Promise<Adapter> => {
     const solana = solanaValue ?? get(solanaAdapter);
-    console.log("solana", solana);
     if (!solana.wallets) throw new Error("No wallets available");
     const provider = solana.wallets![0];
     if (!provider.connected) await provider.connect();

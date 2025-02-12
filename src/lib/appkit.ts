@@ -10,9 +10,10 @@ import { createAppKit } from '@reown/appkit'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { LOGO_USDC, metadata, networks, projectId, SOLANA_ID } from "./vars";
 import { BASE_USDC, SOLANA_USDC } from "./tokens";
-import { setSolanaAdapter, setWagmiAdapter, setWallet, walletIcon, walletName } from "./signers";
+import { setSolanaAdapter, setWagmiAdapter, setWallet } from "./signers";
 import { writable } from "svelte/store";
 import { debounce } from "./utils";
+import { userAddress } from "./accounts";
 
 
 export type KitProvider = UniversalProvider 
@@ -27,7 +28,6 @@ export let eip155Provider : KitProvider;
 export let solanaProvider : KitProvider;
 export let universalProvider : UniversalProvider | undefined = undefined;
 
-export const address = writable<string>();
 export const connected = writable(false);
 
 
@@ -60,7 +60,7 @@ export const providerCallback = (provider: Record<ChainNamespace, KitProvider>) 
 
 export const accountCallback = (account: UseAppKitAccountReturn) => {
     connected.set(account.isConnected);
-    address.set(account.address ?? "");
+    userAddress.set(account.address ?? "");
 }
 
 export const walletCallback = (wallet?: ConnectedWalletInfo) => {
@@ -93,7 +93,7 @@ export const initAppKit = async () : Promise<AppKit> => {
     const sol = new SolanaAdapter({
         wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()]
     })
-    
+
     setSolanaAdapter(sol);
 
     const kit = createAppKit({
@@ -123,28 +123,10 @@ export const initAppKit = async () : Promise<AppKit> => {
     kit.subscribeAccount(accountCallback);
     kit.subscribeNetwork(networkCallback);
     kit.subscribeProviders(providerCallback);
-    console.log("kit", kit);
-
+    
+    //console.log("kit", kit);
     
     appKit = kit;
-
- 
-    /* 
-    console.log("provider", provider, provider?.isWalletConnect);
-
-    provider.on('session_request', async (event : any) => {
-        console.log("session_request", event);
-    })
-
-    provider.on('session_event', async (event : any) => {
-        console.log("session_event", event);
-    })
-
-    provider.on('session_update', async (event : any) => {
-        console.log("session_update", event);
-    }) */
-
-
     return kit;
 }
 

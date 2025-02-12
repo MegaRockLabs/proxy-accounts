@@ -2,8 +2,9 @@ import { formatUnits, parseUnits } from "viem";
 import { ibcTracesValue } from "./cosmos";
 import { NEUTRON_IBC_ATOM, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY } from "./vars";
 import { CosmosHub, Noble, Osmosis } from "./chains";
-import { address } from "./appkit";
+import { userAddress } from "./accounts";
 import { get } from "svelte/store";
+import type { Token } from "./types";
 
 
 let timer: NodeJS.Timer;
@@ -13,22 +14,30 @@ export const debounce = (func: () => void, waitFor: number = 500) => {
 }
 
 
-export const formatTimeHIS = (seconds: number, { short = false } = {}) => {
-    const pad = (num : number) => num < 10 ? `0${num}` : num
-  
-    const H = Number(pad(Math.floor(seconds / 3600)))
-    const i = pad(Math.floor(seconds % 3600 / 60))
-    const s = pad(seconds % 60)
-  
-    if (short) {
-      let result = ''
-      if (H > 0) result += `${+H}:`
-      result += `${H > 0 ? i : +i}:${s}`
-      return result
-    } else {
-      return `${H}:${i}:${s}`
+export const formatSeconds = (second : number) => {
+    // TIP: to find current time in milliseconds, use:
+    // var  current_time_milliseconds = new Date().getTime();
+
+    function numberEnding (num : number) {
+        return (num > 1) ? 's' : '';
     }
-  }
+
+    let temp = Math.floor(second);
+
+    var hours = Math.floor((temp %= 86400) / 3600);
+    if (hours) {
+        return hours + ' hour' + numberEnding(hours);
+    }
+    var minutes = Math.floor((temp %= 3600) / 60);
+    if (minutes) {
+        return minutes + ' minute' + numberEnding(minutes);
+    }
+    var seconds = temp % 60;
+    if (seconds) {
+        return seconds + ' second' + numberEnding(seconds);
+    }
+    return 'less than a second'; //'just now' //or other string you like;
+}
 
 
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -126,7 +135,7 @@ export  const idToChain = (id: string, neutronRelay: boolean = false) => {
     else if (id == CosmosHub.id) return "cosmos16z43tjws3vw06ej9v7nrszu0ldsmn0eyx09uhk";
     else if (id == Osmosis.id) return "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy";
     else if (id == Noble.id) return "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c";
-    else return get(address)    
+    else return get<string>(userAddress)    
   }
 
 
@@ -143,4 +152,15 @@ export const camelizeObject = (obj: any) => {
         newObj[camelize(key)] = obj[key];
     }
     return newObj;
+}
+
+
+export const formatValue = (value: string | number, token: Token) => {
+    if (token.meta.isEth) {
+        const f = formatEth(value);
+        if (f.power) {
+            return `${f.value} ${f.unit}`;
+        }
+    }
+    return parseFloat(value.toString()).toFixed(2)
 }

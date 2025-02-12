@@ -1,10 +1,10 @@
-import type { CosmosClient, RegistryParams,  AccountInfo } from './types';
+import type { CosmosClient, RegistryParams,  AccountInfo, FullCoin } from './types';
 import { writable } from 'svelte/store';
-import type { Coin } from '@cosmjs/stargate';
 import { NEUTRON_REGISTRY } from './vars';
+import { coinsToBalances } from './assets';
 
 
-export const accountCreationFees = writable<Coin[]>([]);
+export const accountCreationFees = writable<FullCoin[]>([]);
 
 
 export const getAccountInfo = async (
@@ -26,8 +26,6 @@ export const getAccountInfo = async (
 
 
 
-
-
 export const getRegistryParams = async (
     client: CosmosClient,
 ) : Promise<RegistryParams> => {
@@ -44,7 +42,8 @@ export const updateRegistryParams = async (
     client: CosmosClient,
 ) => {
     const res = await getRegistryParams(client);
-    accountCreationFees.set(res.creation_fees);
+    const bals = await coinsToBalances(res.creation_fees);
+    accountCreationFees.set(bals);
 }
 
 

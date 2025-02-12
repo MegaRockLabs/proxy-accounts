@@ -5,7 +5,7 @@ import type { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import type { Coin } from "@keplr-wallet/types";
 import { writable } from "svelte/store";
 import { SigningCosmWasmClient, type MsgExecuteContractEncodeObject } from "@cosmjs/cosmwasm-stargate";
-import type { AccBalance, AccountAction, CosmosClient, DepositMsg, NFT } from "./types";
+import type { FullCoin, AccountAction, CosmosClient, DepositMsg, NFT } from "./types";
 import type { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { getBalance, type GetBalanceParameters } from "@wagmi/core";
 import { PublicKey } from "@solana/web3.js";
@@ -16,8 +16,8 @@ import { NeutronTokenMap } from "./tokens";
 
 
 
-
-export const accountBalances = writable<AccBalance[]>([]);
+export let accountBalanceMap : Record<string, FullCoin> = {};
+export const accountBalances = writable<FullCoin[]>([]);
 export const accountTokens = writable<string[]>([]);
 
 
@@ -39,7 +39,6 @@ export const balanceChecker = async (
         return chainBals[key];
     }
     const bal = await fetcher();
-    console.log("Bal bal", bal); 
 
     chainBals[key] = bal;
     userChainBalanceMap[chainId] = chainBals;
@@ -101,14 +100,6 @@ export const getSolBalance = async (
 }
 
 
-/* export const updateAccountTokens = (
-    client: CosmosClient, 
-    address: string, 
-) => {
-    getOwnedTokens(client, config.collection, address)
-    .then((res) => accountTokens.set(res.tokens))
-    .catch(console.error);
-}  */
 
 
 export const transferAssetsActions = (
@@ -137,17 +128,6 @@ export const transferAssetsActions = (
     }
 
 
-  /*   tokens.forEach(token => {
-        // hardcoded endpoint for transferring NFTs
-        actions.push({
-            transfer_token: {
-                collection: token.collection,
-                token_id: token.id,
-                recipient,
-            }
-        });
-    });
- */
 
     return actions;
 }
@@ -155,9 +135,10 @@ export const transferAssetsActions = (
 
 
 export const coinsToBalances = async (
-    coins: Coin[]
+    coins: Coin[],
+    setMap: boolean = true
 ) => {
-    return await Promise.all(
+    const balances = await Promise.all(
         coins
         .filter((coin) => coin.denom in NeutronTokenMap)
         .map(async (coin) => {
@@ -179,6 +160,16 @@ export const coinsToBalances = async (
             }
         })
     )
+
+    if (setMap) {
+        accountBalanceMap = Object.fromEntries(
+            balances.map((balance) => [balance.denom, balance])
+        )
+    }
+
+    return balances.sort((a, b) => {
+        return a.amountUsd > b.amountUsd ? -1 : 1;
+    })
 }
 
 
@@ -187,7 +178,7 @@ export const updateAccountBalances = async (
     address: string,
 ) => {
     const res = await client.bank.allBalances(address);
-    const balances : AccBalance[] = await coinsToBalances(res);
+    const balances : FullCoin[] = await coinsToBalances(res);
     accountBalances.set(balances);
 }
 

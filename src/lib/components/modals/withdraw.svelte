@@ -1,375 +1,99 @@
 <script lang="ts">
-	import { fromHex, toBase64, toUtf8 } from '@cosmjs/encoding';
 	import ElevatedButtonBox from '../common/elevatedButtonBox.svelte';
   import ElevatedBox from "../common/elevatedBox.svelte";
 	import GhostBox from '$lib/components/common/ghostBox.svelte';
-  
+  import OutTokens from '../common/outTokens.svelte';
+  import InTokens from '../common/inTokens.svelte';
+
   import { selectedChain } from '$lib/chains';
-  import { getModalStore, ListBox, ListBoxItem, popup, ProgressRadial, type PopupSettings } from "@skeletonlabs/skeleton";
+  import { getModalStore, ProgressRadial } from "@skeletonlabs/skeleton";
   
-  import type { AccountAction, Chain, CosmosMsg, CosmosToken, Token, NeutronMsg } from '$lib/types';
-  import { NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY, SKIP_COMMON } from '$lib/vars';
+  import type { MsgsDirectRequest, MsgsDirectResponse, Tx } from '@skip-go/client';
+  import type { Chain, CosmosToken, Token } from '$lib/types';
+  import { chainIdsToAddresses, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
   import { NeutronTokenMap, BASE_WETH, BASE_USDC, BASE_AXL_USDC, BASE_ETH } from '$lib/tokens';
   
-  import { executeAccountActions, foundAccountInfo, updateAccounts } from '$lib/accounts';
-  import { type CosmosTx, type MsgsDirectRequest, type MsgsDirectResponse, type MsgsRequest, type MultiChainMsg, type RouteRequest, type RouteResponse, type Tx } from '@skip-go/client';
+  import { foundAccountInfo } from '$lib/accounts';
   import { cosmosClient, relayingClient, skipClient } from '$lib/clients';
-  import { formatUnits, parseUnits } from 'viem';
-  import { getPrice as getTokenPrice } from '$lib/prices';
   import { accountBalances } from '$lib/assets';
-  import { address } from '$lib/appkit';
-  import { getWagmiConnector, relayingAddress, wagmiAdapter } from '$lib/signers';
-  import { signMessage } from '@wagmi/core';
-  import type { Credential } from 'smart-account-auth';
-  import { coins } from '@cosmjs/stargate';
-  import { bridgeTasks, updateBridgeTask, type BridgeTask } from '$lib';
-  import { camelizeObject, idToChain } from '$lib/utils';
-  import { MsgTransfer } from 'cosmjs-types/ibc/applications/transfer/v1/tx';
-  import type { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate';
-  import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
-  import { MsgSend } from 'cosmjs-types/cosmos/bank/v1beta1/tx';
+  
+  import { 
+    inToken, outToken, routeValues, 
+    updateInToken, updateOutToken
+  } from '$lib/values';
 
+  import { calculateCosmosTxs, directRes, executeRoute, setDirectResponse, setRouteValues } from '$lib/routes';
+  import { relayingAddress } from '$lib/signers';
+  import { userAddress } from '$lib/accounts';
+  import InTokenInput from '../common/inTokenInput.svelte';
+  import OutTokenButton from '../common/outTokenButton.svelte';
+  import Separator from '../common/separator.svelte';
+  import { formatSeconds } from '$lib/utils';
+  import FeeAccordion from '../common/feeAccordion.svelte';
+  
   export let parent: any = {} 
   if (parent) {}
 
   const modalStore = getModalStore();
 
 
-  let inChain : Chain;
+  let outAddress = $userAddress
   let inTokens : CosmosToken[] = [];
-  let inBalances : { [key: string]: string } = {};
-
-  let inToken : CosmosToken;
-
-  let inValue : number = 0;
-  let inBalance : number = 0;
-
-  let inParsed : bigint = BigInt(0);
-  let inBalanceParsed : bigint = BigInt(0);
-
-  let inDecimals : number = 6;
-  let inPrice : number = 0;
-
-  let inUSD : number = 0;
-  let inBalanceUSD : number = 0;
-
-  let outAddress = $address
-  let outTokens : (Token | CosmosToken)[] = [];
-  let outToken : (Token | CosmosToken) = outTokens[0];
-  let outDenom  : string;
-
-  let outValue : number = 0;
-  let outPrice : number = 0;
-  let outUSD : number = 0;
-  let outOriginal : number = 0;
-
-  let bridgeValue : number = 0;
-  let bridgeUSD : number = 0;
-
-  let gasFeeValue : number = 0;
-  let gasFeeUSD : number = 0;
+  let outTokens : Token[] = [];
 
   let goFast : boolean = true;
-  let lastRoute : MsgsDirectResponse | null = null;
-  let routeSecs : number = 0;
-
-
   let loading = false;
 
 
-  $: if (inToken && inValue) inParsed = parseUnits(inValue.toString(), inDecimals)
-
-
-  const updateOutToken = async (token: Token | CosmosToken, assign: boolean = true) => {
-    if (assign) {
-      outToken = token;
-    } 
-    outValue = 0;
-
-    if ('address' in token) {
-      outDenom = token.denom;
-    } else {
-      outDenom = token.denom;
-    }
-    if (outToken.meta.isUsd) {
-      outPrice = 1;
-    } else {
-      outPrice = await getTokenPrice(outToken.meta.geckoName)
-    }
-  } 
-
-  const updateInToken = async (token: CosmosToken, assign: boolean = true) => {
-    if (assign) {
-      inToken = token;
-    } 
-    inDecimals = token.decimals;
-    
-    const bal = inBalances[token.denom];
-
-    inBalanceParsed = BigInt(bal ?? 0);
-    inBalance = parseFloat(formatUnits(inBalanceParsed, inDecimals));
-
-    inValue = bal ? inBalance : token.meta.default;
-    if (token.meta.isUsd) {
-      inPrice = 1;
-    } else {
-      inPrice = await getTokenPrice(token.meta.geckoName)
-    }
-  }
-
   const updateToAddress = (address: string) => {
+    console.log('updateToAddress', address);
     outAddress = address;
 
     if (outAddress.startsWith('0x') && outAddress.length == 42) {
-      outTokens = [BASE_WETH, BASE_ETH, BASE_USDC, BASE_AXL_USDC];
-      updateOutToken(BASE_WETH);
-    } else if (outAddress.startsWith('neutron1')) {
-      console.log('updating out tokens');
-      // TODO: get tokens from chain
-      outTokens = Object.values(NeutronTokenMap);
-      updateOutToken(outTokens[0]);
+      const tokens = [BASE_WETH, BASE_ETH, BASE_USDC, BASE_AXL_USDC];
+      if (outTokens.length != tokens.length) {
+        outTokens = tokens;
+        console.log('updateToAddress eth', outTokens);
+        updateOutToken($routeValues ?? {}, BASE_WETH);
+      }
+    } else if (outAddress.startsWith('neutron1') ) {
+      const tokens = Object.values(NeutronTokenMap)
+      if (outTokens.length != tokens.length) {
+        outTokens = tokens;
+        console.log('updateToAddress ntrn', outTokens);
+        updateOutToken($routeValues ?? {}, outTokens[0]);
+      }
     } else {
       outTokens = [];
     }
   }
 
-  const updateChain = async (chain: Chain) => {
-    inChain = chain;
-    const balances = $accountBalances;
-    if (balances.length == 0) return;
-    inBalances = balances.reduce((acc, token) => {
-      acc[token.denom] = token.amount;
-      return acc;
-    }, {} as Record<string, string>);
+  const updateChain = async (_chain: Chain) => {
+    inTokens = $accountBalances.map((token) => token.token);
 
-    inTokens = balances.map((token) => NeutronTokenMap[token.denom]);
-    updateInToken(inTokens[0]);
+    updateInToken($routeValues ?? {}, inTokens[0])
+    .then(val => {
+      if (outTokens.length) updateOutToken(val, outTokens[0]);
+    });
   }
 
-
-  const updateUsds = () => {
-    inUSD = inValue * inPrice;
-    outUSD = outValue * outPrice;
-    gasFeeUSD = gasFeeValue * inPrice;
-    inBalanceUSD = inBalance * inPrice;
-    const big = parseUnits(bridgeValue.toString(), inToken.decimals)
-    bridgeUSD = Number(big) * inPrice;
-  }
-
-
-
-  const updatePrices = async () => {
-    if (inToken.meta.isUsd) {
-      inPrice = 1;
-    } else {
-      inPrice = await getTokenPrice(inToken.meta.geckoName)
-    }
-
-    if (outToken) {
-      if (outToken.meta.isUsd) {
-        outPrice = 1;
-      } else {
-        outPrice = await getTokenPrice(outToken.meta.geckoName)
-      }
-    }
-  }
-
-  
-  let userAddresses : { chainID: string, address: string }[];
-
-
-  const setRouteValues = (route : RouteResponse) => {
-
-    console.log('setting route values', route);
-
-    const newIn = formatUnits(BigInt(route.amountIn), inToken.decimals).toString();
-    const newOut = formatUnits(BigInt(route.amountOut), outToken.decimals).toString();
-
-    inValue = parseFloat(newIn);
-    outValue = parseFloat(newOut);
-    outUSD = outValue * outPrice;
-    inUSD = inValue * inPrice;
-
-    // calculate how much out in original token using inPrice
-    outOriginal = (outUSD / inPrice);
-    routeSecs = route.estimatedRouteDurationSeconds;
-
-    console.log('inUSD', inUSD, 'outUSD', outUSD, 'bridgeUSD', bridgeUSD);
-
-    userAddresses = route.requiredChainAddresses.map((chainID) => ({
-      chainID,
-      address: idToChain(chainID, true)
-    }));
-
-    console.log('userAddresses', userAddresses);
-
-    routeSecs = route.estimatedRouteDurationSeconds;
-
-  }
-
-  const calculateTxs = async () => {
-    const account = $foundAccountInfo
-    if (!lastRoute || !account) return [];
-
-    loading = true;
-
-    const { multiChainMsg } = lastRoute.msgs[0] as { multiChainMsg: MultiChainMsg };
-
-    const actions : AccountAction[] = [];
-
-    const parsed = camelizeObject(JSON.parse(multiChainMsg.msg));
-    console.log('parsed', parsed);
-
-    if (multiChainMsg.msgTypeURL == MsgTransfer.typeUrl) {
-      const tr : MsgTransfer = MsgTransfer.fromJSON(parsed)
-      console.log('ibc msg decoded', tr);
-
-      const route = lastRoute.route;
-      setRouteValues(route);
-
-      const ibc : NeutronMsg = {
-        custom: {
-          ibc_transfer: {
-            token: tr.token,
-            source_channel: tr.sourceChannel,
-            receiver: tr.receiver,
-            memo: tr.memo,
-            timeout_timestamp: Number(tr.timeoutTimestamp),
-            sender: account.address,
-            source_port: tr.sourcePort,
-            timeout_height: {},
-            fee: {
-              receive_fee: coins(0, NEUTRON_DENOM),
-              ack_fee: coins(100000, NEUTRON_DENOM),
-              timeout_fee: coins(100000, NEUTRON_DENOM),
-            }
-          }
-        }
-      }
-      console.log('ibc', ibc);
-      actions.push({ execute: { msgs: [ibc] } });
-
-    } else if (multiChainMsg.msgTypeURL == MsgExecuteContract.typeUrl) {
-
-      const msg : CosmosMsg = {
-        wasm: {
-          execute: {
-            funds: parsed.funds,
-            contract_addr: parsed.contract,
-            msg: JSON.stringify(parsed.msg),  
-          }
-        }
-      }
-      actions.push({ execute: { msgs: [msg] } });
-    
-    } else if (multiChainMsg.msgTypeURL == MsgSend.typeUrl) {
-      const msg : CosmosMsg = {
-        bank: {
-          send: {
-            amount: parsed.amount,
-            to_address: parsed.toAddress
-          }
-        }
-      }
-      actions.push({ execute: { msgs: [msg] } });
-    } else {
-      console.error('Unknown msg type', multiChainMsg.msgTypeURL);
-      return [];
-    }
-
-    const wasmMsg = await executeAccountActions(
-      $relayingClient,
-      $relayingAddress,
-      account,
-      actions,
-      "",
-      true
-    ) as MsgExecuteContractEncodeObject;
-
-    console.log('wasmMsg', wasmMsg);
-
-    const cosmosTx : CosmosTx = {
-      chainID: NEUTRON_ID,
-      signerAddress: $relayingAddress,
-      path: multiChainMsg.path,
-      msgs: [{
-        msg: JSON.stringify(wasmMsg.value),
-        msgTypeURL: wasmMsg.typeUrl,
-      }]
-    }
-
-    return [{ cosmosTx, operationsIndices: lastRoute.txs[0].operationsIndices }];
-  }
 
   const withdraw = async () => {
-    if (!lastRoute) return;
+    const account = $foundAccountInfo;
+    const values = $routeValues;
+    const direct = $directRes;
+    if (!account || !values || !direct || direct.txs.length != 1) return;
 
-    loading = true;
-    try {
-      const txs = await calculateTxs();
-  
-      $skipClient.executeTxs({
-        txs, 
-        route: lastRoute.route,
-        userAddresses,
-        // afterMsg: after.multiChainMsg,
-        onTransactionCompleted: async (chainID, txHash, txStatus) => {
-          console.log(
-            `Route completed status on chainID ${chainID}:`, txStatus
-          );
-          updateBridgeTask(txHash, { txStatus });
-          updateAccounts($cosmosClient, 
-          $address ?? "0xAc03048da6065e584d52007E22C69174CdF2b91a"
-        );
-  
-        },
-        onTransactionBroadcast: async ({ txHash }) => {
-          console.log(`Transaction broadcasted with tx hash: ${txHash}`);
-  
-          bridgeTasks.update(tasks => {
-            const task : BridgeTask = {
-              inAddress: NEUTRON_REGISTRY,
-              inAmount: inValue.toString(),
-              inToken: inToken,
-              txId: txHash,
-  
-              outAmount: outValue.toString(),
-              outToken: outToken,
-              outAddress: $address ?? "0xAc03048da6065e584d52007E22C69174CdF2b91a",
-              outChainId: $selectedChain.id,
-  
-              status: "broadcasted",
-              bridgeType: "IBC",
-              accCreation: false
-            }
-            tasks.push(task);
-            return tasks;
-          });
-  
-        },
-        onTransactionTracked: async ({ txHash, explorerLink }) => {
-          console.log(`Transaction tracked with tx hash: ${txHash}`);
-          updateBridgeTask(txHash, { explorerLink });
-        },
-      });
-
-    } catch (e) {
-      console.error('Error withdrawing', e);
-    } finally {
-      loading = false;
-    }
-
+    executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient)
+    .then(() => modalStore.clear())
+    .catch(e => console.error('Error withdrawing', e))
+    .finally(() => loading = false);
   }
 
   const calculateDirectMessages = async () => {
-    const chainIdsToAddresses = {
-      [NEUTRON_ID]: "neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3",
-      "noble-1": "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c",
-      "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
-      [inChain.id]: "0xAc03048da6065e584d52007E22C69174CdF2b91a",
-    };
+    const values = $routeValues;
 
-    let destAssetChainID = outToken.originalChain; 
+    let destAssetChainID = values.outToken.originalChain; 
     console.log('destAssetChainID', destAssetChainID);
 
     if (outAddress.startsWith('neutron1')) {
@@ -386,37 +110,30 @@
 
     loading = true;
 
-    try {
- 
-      const dirReq: MsgsDirectRequest = {
-        ...SKIP_COMMON,
-        destAssetChainID,
-        destAssetDenom: outDenom,
-        sourceAssetDenom: inToken.denom,
-        sourceAssetChainID: NEUTRON_ID,
-        amountIn: inParsed.toString(),
-        slippageTolerancePercent: "10",
-        goFast,
-        chainIdsToAddresses
-      }
-
-      console.log('dirReq', dirReq);
-      
-      const withPostMsgs = await $skipClient.msgsDirect(dirReq);
-      console.log('withPostMsgs', withPostMsgs);
-      
-      setRouteValues(withPostMsgs.route);
-      lastRoute = withPostMsgs
-
-    } catch (e) {
-      console.error('Error calculating  post messages', e);
-    } finally {
-      loading = false;
+    const dirReq: MsgsDirectRequest = {
+      ...SKIP_COMMON,
+      destAssetChainID,
+      destAssetDenom: values.outToken.denom,
+      sourceAssetDenom: values.inToken.denom,
+      sourceAssetChainID: NEUTRON_ID,
+      amountIn: values.inParsed.toString(),
+      slippageTolerancePercent: "10",
+      goFast,
+      chainIdsToAddresses
     }
+
+    const relayer = $relayingClient;
+
+    $skipClient.msgsDirect(dirReq)
+    .then(direct => calculateCosmosTxs(relayer, $relayingAddress, direct, account, true) as Promise<MsgsDirectResponse>)
+    .then(direct => setDirectResponse(values, direct, $userAddress, NEUTRON_ID, relayer))
+    .then(vals => console.log('Direct messages calculated:', vals))
+    .catch(e => console.error('Error calculating direct messages', e))
+    .finally(() => loading = false);
   }
 
   const onClick = () => {
-    if (!lastRoute) {
+    if (!$directRes) {
       calculateDirectMessages()
     } else {
       withdraw()
@@ -427,182 +144,103 @@
 		modalStore.clear();
 	};
 
-  const payTokens: PopupSettings = {
-    event: 'click',
-    target: 'payTokens',
-    placement: 'bottom',
-    closeQuery: '.listbox-item'
-  };
 
-  const recieveTokens: PopupSettings = {
-    event: 'click',
-    target: 'recieveTokens',
-    placement: 'bottom',
-    closeQuery: '.listbox-item'
-  };
-
-
-  // reset bridge values on change if not calculating route
-  //$: if (!loading && (inToken || outToken || inValue || outValue)) debounce(resetRouteValues)
-
-  $: if (inToken || outToken) updatePrices()
-
-  // update USD values for all values  
-  $: if ((inValue || outValue || true) && inPrice && outPrice) updateUsds()
-
-
-  // reset all available tokens on chain change
+  
   $: if ($selectedChain) updateChain($selectedChain)
+
+  $: if ($userAddress) outAddress = $userAddress;
 
   $: if (outAddress) updateToAddress(outAddress)
     
-  $: if (inToken || outToken || outAddress)  lastRoute = null;
+  $: if ($inToken || $outToken || outAddress)  directRes.set(null);
+
+  $: console.log('routeValues', $routeValues);
 
 </script>
 
+<InTokens tokens={inTokens} />
+<OutTokens tokens={outTokens} />
 
-<div data-popup="payTokens" class="shadow-xl z-50 bg-zinc-900/90">
-  
-  <ListBox rounded="rounded-none" active="bg-primary-active-token">
 
-    { #each inTokens as token (token.denom)}
+<GhostBox styles="w-full md:w-2/3 lg:w-1/2 md:px-5 overflow-auto max-h-screen">
+
+  <ElevatedBox><h3 class="h3 font-bold">Withdraw</h3></ElevatedBox>
+
+  { #if $inToken && $routeValues  }
       
-      <ListBoxItem 
-        bind:group={inToken} name="intoken" 
-        value={token} on:change={() => updateInToken(token)}
-      >
-        <div class="flex gap-5 justify-between items-center ">
-          <img src="{token.meta.logo}" alt="{token.name} logo" class="w-5 h-5" />
-          <div class="flex w-full justify-center">
-            {token.fullName}
-          </div>
-        </div>
-      </ListBoxItem>
-
-    { /each }
-
-  </ListBox>
-
-</div>  
-
-
-<div data-popup="recieveTokens" class="shadow-xl z-50 bg-zinc-900/90">
-  
-  <ListBox rounded="rounded-none" active="bg-primary-active-token">
-
-    { #each outTokens as token }
-
-      <ListBoxItem bind:group={outToken} name="outoken" value={token} on:change={() => updateOutToken(token, false)}>
-        <div class="flex gap-5 justify-between items-center">
-          <img src="{token.meta.logo}" alt="{token.name} logo" class="w-5 h-5" />
-          <div class="flex w-full justify-center">
-            {token.fullName}
-          </div>
-        </div>
-      </ListBoxItem>
-
-    { /each }
-
-  </ListBox>
-
-</div>  
-
-
-<GhostBox styles="w-full md:w-2/3 lg:w-1/2 md:px-5">
-
-  <ElevatedBox styles="p-3"><h3 class="text-md font-bold">Withdraw</h3></ElevatedBox>
-
-  {#if inToken && outToken}
-
-    <div class="pt-5 pb-3 px-1 md:px-3 flex flex-col justify-between gap-5">
-
-      <div class="border border-grey-100 rounded-container-token relative">
-
-        <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="pay">Pay</label>
-        { #if inUSD }
-          <span class="absolute bottom-2 left-7 text-xs text-gray-200 ">( ${inUSD.toFixed(2)} )</span>
-        {/if}
-
-        <div class="flex w-full justify-between items-stretch">
-          
-          <div class="relative w-full ">
+    { @const { outUSD, outToken, outValue } = $routeValues }
       
-            <input 
-              id="pay" type="number" 
-                class="p-7 flex w-full bg-transparent border-none text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-              step={inToken.meta.min} min={inToken.meta.min} 
-              max={inBalance || undefined}
-              bind:value={inValue}
-            />
-          </div>
+    <div class="pt-5 pb-3 flex flex-col justify-between gap-5 px-0">
 
-          <button class="btn bg-zinc-900/80 w-52 lg:w-56 gap-2 justify-center items-center px-7 md:px-5" use:popup={payTokens} disabled={inTokens.length <= 1}>
-            <img src="{inToken.meta.logo}" alt="{inToken.name} logo" class="w-8 h-8" />
-            <div class="flex flex-col gap-2">
-              <span>{inToken?.symbol ?? ""}</span>
-            </div>
-            <span class="material-icons">arrow_drop_down</span>
-          </button>
+      <InTokenInput disabled={loading} />
 
-        </div>
-        
-      </div>
-
-
-      <div class="border border-grey-100 rounded-container-token relative {outTokens.length ? "": "input-error"}">
-        <label class="absolute top-2 left-2  text-xs text-gray-200 " for="to">Recipient</label>
+      <div class="border border-grey-100 rounded-container-token relative  {outTokens.length ? "": "input-error"}">
+        <label class="absolute top-2 left-2 text-xs " for="to">Recipient</label>
 
         <input id="to" type="text" bind:value={outAddress}
-          class="px-3 md:px-7 py-7 flex w-full bg-transparent border-none text-md">
+          class="p-3 md:px-3 md:py-7 flex w-full bg-transparent border-none text-md  ">
       </div>
 
-      { #if outTokens.length > 0 }
+      { #if outToken && outTokens.length > 0 }
     
-          <div class="border border-grey-100 rounded-container-token relative">
-            <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="to">To</label>
-            { #if outUSD }
-                <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${outUSD.toFixed(2)} )</span>
-              {/if}
-            <div class="flex w-full justify-between items-stretch">
-              <input 
-                id="to" type="number" 
-                class="p-7 flex w-full border-none text-lg bg-transparent" 
-                step="0.1" min={outToken.meta.min} bind:value={outValue} disabled
-              />
-              <button class="btn bg-zinc-900/80 w-52 lg:w-56 gap-2 justify-center items-center px-7 md:px-5" use:popup={recieveTokens} disabled={outTokens.length <= 1}>
-                <img src="{outToken.meta.logo}" alt="{outToken.name}logo" class="w-8 h-8" />
-                <div class="flex flex-col gap-2">
-                  <span>{outToken?.symbol ?? ""}</span>
-                </div>
-                <span class="material-icons">arrow_drop_down</span>
-              </button>
+        <div class="relative">
+          <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="to">To</label>
+          
+          { #if outUSD && outUSD != "0.00" }
+              <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${outUSD} )</span>
+          {/if}
+
+          
+          <div class="flex w-full justify-between items-stretch">
+            <div class="border-b border-grey-100  text-lg p-7 w-full flex gap-3">
+              <span class="min-w-28 h-full">
+                {outValue || "឴"}
+              </span>
             </div>
+
+            <OutTokenButton disabled={loading} />
           </div>
+        </div>
         
       {/if}
+
+      { #if $routeValues?.routeSecs }
+        <div class="w-full flex items-center justify-between font-bold px-1 sm:px-4">
+          <div>Estimated Time</div>
+          <div class="flex justify-between items-center gap-4 text-sm sm:text-base">
+            <span>{formatSeconds($routeValues.routeSecs)}</span>
+          </div>
+        </div>
+      { /if }
+
+
+      <FeeAccordion />
     
-    <div class="my-5 border-t border-white/20"></div>
 
-    <div class="flex justify-end items-center px-2">
+      <div class="flex justify-end items-center px-2 my-3">
 
-      <div class="flex gap-5">
+        <div class="flex gap-5">
 
-        <ElevatedButtonBox selected onClick={clickCancel} small={false}>Cancel</ElevatedButtonBox>
+          <ElevatedButtonBox selected onClick={clickCancel} small={false}>Cancel</ElevatedButtonBox>
 
-        <ElevatedButtonBox styles="variant-filled-primary" onClick={onClick} disabled={loading || !outTokens.length || !outToken } small={false}>
-          {#if lastRoute }
-            Withdraw
-          { :else if loading }
-            <ProgressRadial value={undefined} width="w-6" />
-          {:else}
-            Calculate
-          {/if}
-        </ElevatedButtonBox>
+          <ElevatedButtonBox styles="variant-filled-primary" onClick={onClick} disabled={loading || !outTokens.length || !outToken } small={false}>
+            {#if $directRes }
+              Withdraw
+            { :else if loading }
+              <ProgressRadial value={undefined} width="w-6" />
+            {:else}
+              Calculate
+            {/if}
+          </ElevatedButtonBox>
+        </div>
       </div>
-    </div>
-  </div>
-  
 
-  {/if}
+    </div>
+
+    <Separator size={1} />
+    
+
+  { /if }
+
     
 </GhostBox>

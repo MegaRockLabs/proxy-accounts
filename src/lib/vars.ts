@@ -1,11 +1,8 @@
-import { base, solana, type AppKitNetwork, polygon } from '@reown/appkit/networks';
+import { base, solana, type AppKitNetwork } from '@reown/appkit/networks';
 import type { Metadata } from "@reown/appkit";
 import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
 import type { ExperimentalFeature } from '@skip-go/client';
 
-export const projectId = PUBLIC_WALLETCONNECT_ID
-
-export const networks : [AppKitNetwork, ...AppKitNetwork[]] = [base, polygon, solana]
 
 export const metadata : Metadata = {
     name: 'Proxy Accounts',
@@ -13,6 +10,33 @@ export const metadata : Metadata = {
     url: 'http://localhost:5174', 
     icons: ['https://assets.reown.com/reown-profile-pic.png']
 }
+
+
+export const chainIdsToAddresses : Record<string, string> = {
+    "noble-1": "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c",
+    "neutron-1": "neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3",
+    "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
+    "cosmoshub-4": "cosmos16z43tjws3vw06ej9v7nrszu0ldsmn0eyx09uhk",
+
+};
+
+
+export const SKIP_COMMON   = {
+    experimentalFeatures: ["cctp", "hyperlane", "stargate"] as ExperimentalFeature[],
+    smartRelay: true,
+    allowUnsafe: true,
+    smartSwapOptions: {
+        splitRoutes: true,
+        evmSwaps: true
+    },
+    allowSwaps: true,
+    allowMultiTx: false,
+    goFast: true,
+}
+
+export const networks : [AppKitNetwork, ...AppKitNetwork[]] = [base, /* solana */]
+
+export const projectId = PUBLIC_WALLETCONNECT_ID
 
 
 export const LOGO_ETH = "https://raw.githubusercontent.com/axelarnetwork/axelar-configs/main/images/tokens/weth.svg";
@@ -34,6 +58,8 @@ export const NEUTRON_ID = "neutron-1"
 export const NEUTRON_DENOM = "untrn"
 export const NEUTRON_IBC_ATOM = "ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9"
 
+"neutron1cw20kzuq88l5nza6xyhl93tpl58f5elvt2x58egus0ky7tzfef0qjzalaf"
+
 export const NEUTRON_REGISTRY = "neutron1eua378gwp60uhvdxrk5qmwumy5xzxdh3z7clnk0040707rcna8cs4e6tdj"
 export const NEUTRON_ACCOUNT_ID = 3113
 
@@ -41,14 +67,3 @@ export const NEUTRON_ACCOUNT_ID = 3113
 export const GECKO_API = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids="
 
 
-export const SKIP_COMMON   = {
-    experimentalFeatures: ["cctp", "hyperlane", "stargate"] as ExperimentalFeature[],
-    smartRelay: true,
-    allowUnsafe: true,
-    smartSwapOptions: {
-        splitRoutes: true,
-        evmSwaps: true
-    },
-    allowSwaps: true,
-    allowMultiTx: false,
-}

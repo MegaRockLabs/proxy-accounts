@@ -246,7 +246,7 @@ export type NeutronMsg = {
     }
 }
 
-export type AccBalance = {
+export type FullCoin = {
     denom: string;
     amount: string;
     amountHuman: string,
@@ -263,4 +263,43 @@ export type AccountAction =
 
 
 
+
+export type RouteValues = {
+    inUSD: string;
+    inToken: Token;
+    inValue: number;
+    inPrice: number;
+    inParsed: bigint;
     
+    outUSD: string;
+    outToken: Token;
+    outValue: number;
+    outPrice: number;
+    outParsed: bigint;
+
+    outOriginal: number;
+    routeSecs: number;
+
+    bridgeToken: Token;
+    bridgeValue: string;
+    bridgeParsed: bigint;
+    bridgeUSD: number;
+
+    gasValue: string;
+    gasParsed: bigint;
+    gasUSD: string;
+
+    creationFee?: string,
+    creationFeeParsed?: bigint;
+    creationFeeUSD?: string;
+
+    totalFeeValue: string;
+    totalFeeParsed: bigint;
+    totalFeeUSD: string;
+
+
+    userAddresses: { 
+        chainID: string, 
+        address: string 
+    }[];
+}

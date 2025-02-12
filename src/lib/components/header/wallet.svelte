@@ -1,32 +1,25 @@
 <script lang="ts">
     import Box from "./box.svelte";
     import { formatAddress } from "$lib/utils";
-    import { appKit, address } from "$lib/appkit";
+    import { appKit } from "$lib/appkit";
     import { wagmiAdapter, walletIcon } from "$lib/signers";
     import { selectedChain } from "$lib/chains";
 
-    import { PublicKey } from '@solana/web3.js';
-    import { cosmosClient, getEthClient, solanaClient } from "$lib/clients";
-    import { SOLANA_USDC } from "$lib/tokens";
+    import { cosmosClient } from "$lib/clients";
     import { onEthAddressFound, onSolAddressFound } from "$lib";
-    import { foundAccount, foundAccountInfo } from "$lib/accounts";
+    import { userAddress, foundAccountInfo } from "$lib/accounts";
 
 
-    const connectCheck = async () => {
-        const wagmi = $wagmiAdapter;
-        if (!wagmi) return;
-    }
-   
 
     const onClick = () => {
         appKit.open();
     }
 
     const onConnectedClick = () => {
-        connectCheck();
         appKit.open({ view: "Account" });
     }
 
+    
     const onAddress = (address: string) => {
 
         const fai = $foundAccountInfo;
@@ -35,28 +28,25 @@
             if (fai?.credentials.some((c) => c.human_id === address)) {
                 return;
             }
-            onEthAddressFound($wagmiAdapter, $selectedChain.id, $cosmosClient, $address);
+            onEthAddressFound($wagmiAdapter, $selectedChain.id, $cosmosClient, $userAddress);
         } else {
-            onSolAddressFound($cosmosClient, $address);
+            onSolAddressFound($cosmosClient, $userAddress);
         }
-
     }
 
-    $: if ($foundAccountInfo) console.log("fai", $foundAccountInfo);
-
-    $: if ($address) onAddress($address);
+    $: if ($userAddress) onAddress($userAddress);
 
 </script>
 
 <Box>
     <div class="flex justify-center items-center min-h-8 gap-3 px-1 min-w-24">
-        { #if $address }
+        { #if $userAddress }
             <button class="flex flex-col text-sm" on:click={onConnectedClick}>
                 <div class="flex-center gap-3 text-center px-1">
                     {#if $walletIcon}
                         <img src={$walletIcon} alt="wallet icon" class="w-4 h-4" />
                     {/if}
-                    <span>{ formatAddress($address) }</span>
+                    <span>{ formatAddress($userAddress) }</span>
                 </div>
             </button>
 

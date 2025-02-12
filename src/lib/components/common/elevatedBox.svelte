@@ -7,6 +7,6 @@
     $: shadowStyles = shadow ? 'bg-glass-shadow' : '';
 </script>
 
-<div  class="rounded-container-token bg-glass p-2 {borderStyles} {shadowStyles} {styles}">
+<div  class="rounded-container-token bg-glass p-1 md:p-2 {borderStyles} {shadowStyles} {styles}">
     <slot />
 </div>
