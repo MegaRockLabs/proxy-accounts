@@ -1,11 +1,19 @@
 // toastUtils.ts
 import type { ToastSettings, ToastStore } from '@skeletonlabs/skeleton';
 
-export function toastTransaction(toastStore: ToastStore, pendingMessage: string, successMessage: string, transaction: Promise<any>): void {
+export function toastTransaction(
+    toastStore: ToastStore, 
+    pendingMessage: string, 
+    successMessage: string, 
+    transaction: Promise<any>,
+    successSettings: Partial<ToastSettings> = {},
+    pendingSettings: Partial<ToastSettings> = {}
+): void {
     // Trigger the pending transaction toast
     const pendingToast: ToastSettings = {
         message: pendingMessage,
         autohide: false,
+        ...pendingSettings
     };
     toastStore.trigger(pendingToast);
 
@@ -17,6 +25,8 @@ export function toastTransaction(toastStore: ToastStore, pendingMessage: string,
                 timeout: 5000,
                 autohide: true,
                 hoverable: true,
+                hideDismiss: true,
+                ...successSettings
             };
             toastStore.trigger(successToast);
         })

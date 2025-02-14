@@ -3,7 +3,7 @@ import type { Coin } from "@keplr-wallet/types";
 /* import { getEthPersonalSignCredential, getPasskeyCredential } from "smart-account-auth"; */
 import { fromBase64, fromHex, fromUtf8, toBase64, toUtf8 } from "@cosmjs/encoding";
 import { accountBalances, coinsToBalances } from "./assets";
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 import type { AccountAction, CosmosClient, FullInfo, ParsedAccountInfo } from "./types";
 import { getAccountInfo } from "./registry";
 import { localStorageStore } from "@skeletonlabs/skeleton";
@@ -12,11 +12,10 @@ import { coins, type StdFee } from "@cosmjs/stargate";
 import type { CredentialData } from "smart-account-auth";
 import { toBinary, type MsgExecuteContractEncodeObject, type SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { getEVMSigner } from "./signers";
+import { getEVMSigner, relayingAddress } from "./signers";
+import { updateFeeGrants } from "./cosmos";
 
 
-
-export const foundAccount = writable<string | undefined>(undefined); 
 
 export const foundAccountInfo = localStorageStore<ParsedAccountInfo | undefined>("foundAccountInfo", undefined);
 
@@ -43,7 +42,6 @@ export const updateAccounts = async (
     client: CosmosClient,
     credentialId: string | string[]
 ) => {
-    foundAccount.set(undefined);
 
     const ids = typeof credentialId == "string" ? [credentialId] : credentialId;
 
@@ -51,8 +49,12 @@ export const updateAccounts = async (
         const res = await getAccountInfo(client, id)
         // console.log(id, " account info", res);
         if (res && res.address) {
-            foundAccount.set(res.address);
             updateAccountInfo(client, res.address);
+            updateFeeGrants(
+                client, 
+                get(relayingAddress),
+                res.address
+            );
             break;
         }
     }

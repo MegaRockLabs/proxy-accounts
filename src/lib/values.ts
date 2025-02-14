@@ -1,29 +1,33 @@
 import { getPrice } from "./prices";
-import { parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import { writable, type Writable } from "svelte/store";
 import type { RouteValues, Token } from "./types";
 import type { PopupSettings } from "@skeletonlabs/skeleton";
 import { accountBalanceMap } from "./assets";
 
 export const inValue : Writable<number> = writable(0);
-
 export const inToken : Writable<Token> = writable();
 export const outToken : Writable<Token> = writable();
-
 export const routeValues = writable<RouteValues>();
 
 
 export const updateInToken = async (
   values: RouteValues,
   token: Token,
-  assign: boolean = true
+  assign: boolean = true,
 ) => {
   if (assign) inToken.set(token);
   values.inToken = token;
   values.inPrice = token.meta.isUsd ? 1 : (await getPrice(token.meta.geckoName));
-  const bal = accountBalanceMap[token.denom];
+
+  const accBal = accountBalanceMap[token.denom];
+  const bal = parseUnits(accBal?.amount || "0", token.decimals);
+  const hum = formatUnits(bal, token.decimals);
+  const floored = Math.floor(parseFloat(hum));
+  const val = floored ? Math.min(floored, token.meta.min) : token.meta.min;
+  console.log("val", val);
   
-  return updateInValue(values, bal ? parseFloat(bal.amountHuman) : token.meta.min ?? 0);
+  return updateInValue(values, val);
 }
 
 

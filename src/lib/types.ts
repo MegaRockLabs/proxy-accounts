@@ -90,13 +90,13 @@ export type SmartAccount = {
 }
 
 
-export type CosmosClient = QueryClient 
+export type CosmosClient = (QueryClient 
     & StakingExtension 
     & WasmExtension 
     & BankExtension 
     & GovExtension 
     & IbcExtension 
-    & FeegrantExtension
+    & FeegrantExtension)
 
 
 
@@ -285,6 +285,7 @@ export type RouteValues = {
     bridgeParsed: bigint;
     bridgeUSD: number;
 
+    gasToken: Token;
     gasValue: string;
     gasParsed: bigint;
     gasUSD: string;

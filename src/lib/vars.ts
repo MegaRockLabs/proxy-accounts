@@ -64,6 +64,8 @@ export const NEUTRON_REGISTRY = "neutron1eua378gwp60uhvdxrk5qmwumy5xzxdh3z7clnk0
 export const NEUTRON_ACCOUNT_ID = 3113
 
 
+export const BASESCAN = "https://basescan.org/tx/"
+export const MINTSCAN = "https://mintscan.io/neutron/tx/"
 export const GECKO_API = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids="
 
 

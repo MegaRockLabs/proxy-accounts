@@ -10,8 +10,9 @@ import { getEthBalance, getSolBalance, updateAccountBalances } from "./assets";
 import { localStorageStore } from "@skeletonlabs/skeleton";
 import { type BridgeType, type TxStatusResponse } from "@skip-go/client";
 import { get } from "svelte/store";
-import { wagmiAdapter } from "./signers";
+import { relayingAddress, wagmiAdapter } from "./signers";
 import { BASE_ID } from "./vars";
+import { updateFeeGrants } from "./cosmos";
 
 
 type BrigeTaskStatus = "broadcasted" | "in_settled" | "brige_settling" | "out_broadcasted" | "completed" | "failed";
@@ -25,29 +26,32 @@ export type BridgeTask = {
 
     outAmount: string;
     outToken: Token;
-    outAddress: string;
+    outAddress?: string;
     outChainId: string;
 
-    txId: string;
-    status: BrigeTaskStatus;
+    chainID: string;
+    txHash: string;
 
     txStatus?: TxStatusResponse;
 
     explorerLink?: string;
-    bridgeType?: BridgeType;
     accCreation?: boolean;
 }
 
 
+export const deleteBridgeTask = (txId: string) => {
+    bridgeTasks.update((tasks) => tasks.filter((t) => t.txHash !== txId));
+}
+
 export const updateBridgeTask = (txId: string, task: Partial<BridgeTask>) => {
     bridgeTasks.update((tasks) => {
-        const found = tasks.find((t) => t.txId === txId);
+        const found = tasks.find((t) => t.txHash === txId);
         if (!found) {
             console.error(`Bridge task with txId ${txId} not found`);
             return tasks;
         }
         const updated = { ...found, ...task };
-        return tasks.map((t) => (t.txId === txId ? updated : t));
+        return tasks.map((t) => (t.txHash === txId ? updated : t));
     });
 }
 
@@ -83,6 +87,12 @@ export const onMountLogic = async () => {
     const found = get(foundAccountInfo)
     if (found) {
         updateAccountBalances(client, found.address);
+        updateFeeGrants(
+            client, 
+            get(relayingAddress),
+            found.address
+        );
+        
         const ethCred = found.credentials.find((c) => c.human_id?.startsWith('0x'))
         if (ethCred) {
             onEthAddressFound(get(wagmiAdapter), BASE_ID, client, ethCred.human_id!);

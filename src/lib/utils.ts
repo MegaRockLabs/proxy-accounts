@@ -36,7 +36,7 @@ export const formatSeconds = (second : number) => {
     if (seconds) {
         return seconds + ' second' + numberEnding(seconds);
     }
-    return 'less than a second'; //'just now' //or other string you like;
+    return 'a few seconds'; //'just now' //or other string you like;
 }
 
 
@@ -103,7 +103,10 @@ const UNITS = [
   ];
   
 export const formatEth = (wei: number | string) => {
-    const value = parseUnits(wei.toString(), 18);
+    const value = parseUnits(
+        wei.toLocaleString('fullwide', {useGrouping:false}),
+        18
+    );
     for (const unit of UNITS) {
         const formatted = Number(formatUnits(value, unit.decimals));
         if (formatted >= 0.01 && formatted < 100) {
@@ -163,4 +166,26 @@ export const formatValue = (value: string | number, token: Token) => {
         }
     }
     return parseFloat(value.toString()).toFixed(2)
+}
+
+
+const parseErrorText = (error: any) => {
+    if (error instanceof Error) {
+        return error.message;
+    } else if (typeof error === "string") {
+        return error;
+    } else {
+        return JSON.stringify(error);
+    }
+}
+
+export const formatError = (error: any) => {
+    const text = parseErrorText(error);
+    const low = text.toLowerCase();
+    
+    if (low.includes("smaller than") || low.includes("insufficient")) {
+        return "Insufficient funds"
+    }
+
+    return text;
 }

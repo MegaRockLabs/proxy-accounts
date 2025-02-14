@@ -94,10 +94,11 @@
           Deposit
         </ElevatedButtonBox>
 
-        <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x')}>
+        <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x') && false}>
           Withdraw
         </ElevatedButtonBox>
       </div>
+      
     {/if }
 
     <Separator size={5} />

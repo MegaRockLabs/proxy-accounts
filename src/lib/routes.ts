@@ -1,26 +1,26 @@
-import type { EstimatedFee, SwapVenue } from "@skip-go/client";
+import type { EstimatedFee, StatusState, SwapVenue, TxStatusResponse } from "@skip-go/client";
 import { Base, CosmosHub, gasPrice, Neutron, Noble, Osmosis } from "./chains";
 import { ALL_ETH, AllTokensMap, ATOM, AXL_USDC, BASE_ETH, BASE_USDC, BASE_WETH, NOBLE_USDC, NTRN, NTRN_INPUT, SOLANA_USDC, WST_ETH } from "./tokens"
 import type { CosmosTx, MsgsDirectResponse, MultiChainMsg, RouteResponse, SkipClient, Tx } from "@skip-go/client";
-import type { FullCoin, AccountAction, CosmosClient, CosmosMsg, NeutronMsg, ParsedAccountInfo, RouteValues } from "./types";
+import type { FullCoin, AccountAction, CosmosClient, CosmosMsg, NeutronMsg, ParsedAccountInfo, RouteValues, ParsedGrant } from "./types";
 import { camelizeObject, formatValue, idToChain } from "./utils";
-import { bridgeTasks, updateBridgeTask, type BridgeTask } from "$lib";
-import { executeAccountActions, updateAccounts } from "./accounts";
-import { BASE_ID, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY } from "./vars";
+import { bridgeTasks, deleteBridgeTask, updateBridgeTask, type BridgeTask } from "$lib";
+import { executeAccountActions, foundAccountInfo, updateAccounts, userAddress } from "./accounts";
+import { BASE_ID, MINTSCAN, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY } from "./vars";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
-import { coins } from "@cosmjs/stargate";
+import { calculateFee, coins, type StdFee } from "@cosmjs/stargate";
 import { toUtf8 } from "@cosmjs/encoding";
 
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
 import { toBinary, type MsgExecuteContractEncodeObject, type SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { writable } from "svelte/store";
-import { getEthGasPrice, getCosmosGasPrice as getGasPriceC, getPrice } from "./prices";
+import { get, writable } from "svelte/store";
+import { getEthGasPrice, getPrice } from "./prices";
 import { formatUnits, parseUnits } from "viem";
-import { inValue, routeValues } from "./values";
+import { routeValues } from "./values";
 import { getEthClient } from "./clients";
-import { estimateGas, getGasPrice } from "viem/actions";
-import { Decimal } from "@cosmjs/math";
+import { estimateGas } from "viem/actions";
+import type { ToastStore } from "@skeletonlabs/skeleton";
 
 
 type RouteInfo = {
@@ -459,70 +459,160 @@ export const setDirectResponse = async (
 
     
 
-
-
-export const executeRoute = async (
-    client: SkipClient,
+export const executeRouteCosmwasm = async (
+    signerClient: SigningCosmWasmClient,
+    signerAddress: string,
+    skip: SkipClient,
     txs: Tx[],
-    route: RouteResponse,
+    account: ParsedAccountInfo,
+    grants: ParsedGrant[],
     values: RouteValues,
-    cosmosClient: CosmosClient
 ) => {
+    const tx = (txs[0] as { cosmosTx: CosmosTx }).cosmosTx;
+    const msg = tx.msgs[0];
+    const parsed = JSON.parse(msg.msg);
+    const msgs : MsgExecuteContractEncodeObject[] = [{
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: {
+            ...parsed,
+            msg: toUtf8(JSON.stringify(parsed.msg))
+        }
+    }];
+    
 
-    return client.executeTxs({
-        txs, 
-        route,
-        userAddresses: values.userAddresses,
+    let fee : StdFee | 'auto' = 'auto';
+    
+    console.log('all grants', grants);
+    const grant = grants.find(fg => fg.granter == account.address && fg.grantee == signerAddress);
+    console.log('grant', grant);
 
-        onTransactionCompleted: async (chainID, txHash, txStatus) => {
-            console.log(`Route completed status on chainID ${chainID}:`, txStatus);
-            updateBridgeTask(txHash, { txStatus });
-            updateAccounts(cosmosClient, values.userAddresses.find((addr) => addr.chainID === chainID)!.address);
-        },
-        
-        onTransactionBroadcast: async ({ txHash }) => {
-            console.log(`Transaction broadcasted with tx hash: ${txHash}`);
+    if (grant) {
+        const gasAdjustment = 1.5;
+        const amount = await signerClient.simulate(signerAddress, msgs, "");
+        console.log('sim amount', amount);
+        const gas = Math.round(amount * gasAdjustment);
+        fee = {
+            ...calculateFee(gas, gasPrice),
+            granter: account.address,
+            payer: signerAddress,
+        };
+        console.log('sim fee', fee);
+    }
 
-            bridgeTasks.update(tasks => {
-                const task : BridgeTask = {
-                    inAddress: NEUTRON_REGISTRY,
-                    inAmount: values.inValue.toString(),
-                    inToken: values.inToken,
-                    txId: txHash,
+    const txres = await signerClient.signAndBroadcast(
+        signerAddress, msgs, fee, "MegaRock Proxy | Withdrawal"
+    );
 
-                    outAmount: values.outValue.toString(),
-                    outToken: values.outToken,
-                    outAddress: "",
-                    outChainId: "",
-                    status: "broadcasted",
-                    bridgeType: "IBC",
-                    accCreation: false
-                }
-                tasks.push(task);
-                return tasks;
-            });
-        },
-        onTransactionTracked: async ({ txHash, explorerLink }) => {
-            console.log(`Transaction tracked with tx hash: ${txHash}`);
-            updateBridgeTask(txHash, { explorerLink });
-        },
+    console.log('tx', txres);
+    const chainID = tx.chainID;
+    const txHash = txres.transactionHash;
+    
+    const track = await skip.trackTransaction({
+        chainID,
+        txHash
+    }) 
+    console.log('track', track);
+
+
+    bridgeTasks.update(tasks => {
+        const task : BridgeTask = {
+            inAddress: account.address,
+            inAmount: formatValue(values.inValue, values.inToken),
+            inToken: values.inToken,
+
+            chainID,
+            txHash,
+
+            outAmount: formatValue(values.outValue, values.outToken),
+            outToken: values.outToken,
+            outChainId: values.outToken.originalChain,
+            accCreation: false
+        }
+        tasks.push(task);
+        return tasks;
     });
+
+
+    return {
+        txHash: txres.transactionHash,
+        promise: skip.waitForTransaction({
+            chainID: NEUTRON_ID,
+            txHash: txres.transactionHash,
+        }),
+    }
 
 }
 
 
 
+export const executeRoute = (
+    client: SkipClient,
+    txs: Tx[],
+    route: RouteResponse,
+    values: RouteValues,
+    cosmosClient: CosmosClient,
+    accCreation: boolean = false
+) => {
+
+    console.log('executing cosmos client', cosmosClient);
 
 
-export const calculateCosmosTxs = async (
-    client: SigningCosmWasmClient,
-    address: string,
-    direct : MsgsDirectResponse,
-    account: ParsedAccountInfo,
-    returnDirect: boolean = false
-  ) => {
+    // return a promise with { txHash, promise }
     
-    const { multiChainMsg } = direct.msgs[0] as { multiChainMsg: MultiChainMsg };
+    return new Promise<{ txHash: string, promise: Promise<any>}>(resolve => {
+        
+        const promise = client.executeTxs({
+            txs, 
+            route,
+            userAddresses: values.userAddresses,
+    
+            onTransactionCompleted: async (chainID, txHash, txStatus) => {
+                console.log(`Route completed status on chainID ${chainID}:`, txStatus);
+                updateBridgeTask(txHash, { txStatus });
+                updateAccounts(cosmosClient, values.userAddresses.find((addr) => addr.chainID === chainID)!.address);
+            },
+            
+            onTransactionBroadcast: async ({ txHash, chainID }) => {
+                console.log(`Transaction broadcasted with tx hash: ${txHash}`);
+    
+                bridgeTasks.update(tasks => {
+                    const task : BridgeTask = {
+                        inAddress: get(userAddress),
+                        inAmount: formatValue(values.inValue, values.inToken),
+                        inToken: values.inToken,
+    
+                        chainID,
+                        txHash,
+    
+                        outAddress: accCreation ? NEUTRON_REGISTRY : get(foundAccountInfo)?.address,
+                        outAmount: formatValue(values.outValue, values.outToken),
+                        outToken: values.outToken,
+                        outChainId: NEUTRON_ID,
+                        accCreation
+                    }
+                    tasks.push(task);
+                    return tasks;
+                });
+
+                resolve({ txHash, promise });
+            },
+            onTransactionTracked: async ({ txHash, explorerLink }) => {
+                console.log(`Transaction tracked with tx hash: ${txHash}`);
+                updateBridgeTask(txHash, { explorerLink });
+            },
+        }); 
+    });
+
+
+}
+
+
+
+export const parseCosmosActions = (
+    multiChainMsg: MultiChainMsg,
+    account: ParsedAccountInfo,
+) => {
+
 
     const actions : AccountAction[] = [];
 
@@ -578,8 +668,24 @@ export const calculateCosmosTxs = async (
       actions.push({ execute: { msgs: [msg] } });
     } else {
       console.error('Unknown msg type', multiChainMsg.msgTypeURL);
-      return [];
+      
     }
+
+    return actions;
+}
+
+
+export const calculateCosmosTxs = async (
+    client: SigningCosmWasmClient,
+    address: string,
+    direct : MsgsDirectResponse,
+    account: ParsedAccountInfo,
+    returnDirect: boolean = false
+) => {
+    
+    const { multiChainMsg } = direct.msgs[0] as { multiChainMsg: MultiChainMsg };
+
+    const actions : AccountAction[] = parseCosmosActions(multiChainMsg, account);
 
     const wasmMsg = await executeAccountActions(
       client,
@@ -659,10 +765,14 @@ export const updateBridgeFee = (
         + (creationFeeCoin ? parseFloat(creationFeeCoin.amount) : 0);
 
     const value = totalUsd / (values.inPrice || 1);
+    console.log('total usd:', totalUsd, " / ", values.inPrice, " = ", value);
 
     values.totalFeeUSD = totalUsd.toFixed(3);
     values.totalFeeValue = formatValue(value, token);
-    values.totalFeeParsed = parseUnits(value.toString(), token.decimals);
+    values.totalFeeParsed = parseUnits(
+        value.toLocaleString('fullwide', {useGrouping:false}), 
+        token.decimals
+    );
 
     routeValues.set(values);
     return values;
@@ -682,8 +792,7 @@ export const updateGasFee = async (
     values.gasValue = "";
     values.gasUSD = "0";
 
-    const gasToken = chainID == BASE_ID ? BASE_ETH : NTRN;
-    
+    values.gasToken = chainID == BASE_ID ? BASE_ETH : NTRN;
 
     if ('evmTx' in tx) {
         const evmTx = tx.evmTx;
@@ -711,10 +820,9 @@ export const updateGasFee = async (
         console.log('gas for cosmosTx', cosmosTx);
 
         if (relayer) {
-            console.log('simulating cosmos tx');
             const msg = cosmosTx.msgs[0];
             const parsed = JSON.parse(msg.msg); 
-            console.log('parsed', parsed);
+            console.log('parsed cosmos tx', parsed);
 
             const value = MsgExecuteContract.fromPartial({
                 contract: parsed.contract,
@@ -731,19 +839,19 @@ export const updateGasFee = async (
                 }],
                 ""
             )
-            console.log('simulated', simulated);
+
+            values.gasToken = NTRN;
+            
             const fee = simulated * 0.02;
-            console.log('cosmos fee', fee);
 
             values.gasParsed = BigInt(Math.round(fee));
-            const hum = parseFloat(formatUnits(values.gasParsed, 6));
+            const hum = parseFloat(formatUnits(values.gasParsed, values.gasToken.decimals));
 
             values.gasValue = hum.toString();
-            console.log('cosmos gas fee', values.gasValue);
 
             const ntrnPrice = await getPrice(NTRN_INPUT.geckoName);
             values.gasUSD = (ntrnPrice * hum).toString();
-            console.log('cosmos gas usd', values.gasUSD);
+
         }
 
     } else {
@@ -758,16 +866,110 @@ export const updateGasFee = async (
         + (values.bridgeUSD || 0) 
         + (creationFeeCoin ? parseFloat(creationFeeCoin.amountUsd) : 0);
 
-    console.log('total usd', totalUsd);
-
     const value = totalUsd / (values.inPrice || 1);
+    console.log('total usd:', totalUsd, " / ", values.inPrice, " = ", value);
 
     values.gasUSD = parseFloat(values.gasUSD).toFixed(2);
 
     values.totalFeeUSD = totalUsd.toFixed(3);
-    values.totalFeeValue = formatValue(value, gasToken);
-    values.totalFeeParsed = parseUnits(value.toString(), token.decimals);
+    values.totalFeeValue = formatValue(value, token);
+    values.totalFeeParsed = parseUnits(
+        value.toLocaleString('fullwide', {useGrouping:false}), 
+        token.decimals
+    );
 
     routeValues.set(values);
     return values;
+}
+
+
+const completeStates: StatusState[] = [
+    "STATE_ABANDONED",
+    "STATE_COMPLETED",
+    "STATE_COMPLETED_ERROR",
+    "STATE_COMPLETED_SUCCESS",
+    "STATE_PENDING_ERROR"
+]
+export const isTaskCompleted = (status: TxStatusResponse) => {
+    return completeStates.includes(status.status);
+}
+
+
+export const viewTxAction = (
+    txHash: string, 
+    explorerLink?: string,
+    removeOnClose: boolean = true
+) => {
+    const url = explorerLink ? explorerLink : MINTSCAN + txHash;
+    return {
+        label: 'View Tx',
+        response: () => {
+            window.open(url, '_blank')
+            if (removeOnClose) deleteBridgeTask(txHash);
+        }
+            
+    }
+}
+
+
+export const processBridgeTasks = async (
+    client: SkipClient,
+    tasks: BridgeTask[],
+    toastStore: ToastStore
+) => {
+    console.log('processing bridge tasks', tasks);
+    const leftTasks : BridgeTask[] = [] 
+    for (const task of tasks) {
+        try {
+            // @ts-ignore
+            const txHash = task.txHash ?? task.txId;
+            const txStatus = await client.transactionStatus({
+                chainID: task.chainID ?? task.inToken.originalChain,
+                txHash
+            });
+            console.log('status', txStatus);
+            const action = viewTxAction(txHash, task.explorerLink);
+            
+            updateBridgeTask(task.txHash, { txStatus });
+
+            if (txStatus.status == "STATE_COMPLETED" || 
+                txStatus.status == "STATE_COMPLETED_SUCCESS"
+            ) {
+                toastStore.trigger({
+                    message: 'Success brdging ' + task.inAmount + ' ' + task.inToken.symbol,
+                    action
+                })
+            } else if (
+                txStatus.status == "STATE_COMPLETED_ERROR" ||
+                txStatus.status == "STATE_PENDING_ERROR"
+            ) {
+                console.error('Error in transaction status:', txStatus.error);
+
+                toastStore.trigger({
+                    message: 'Error bridging ' + task.inAmount + ' ' + task.inToken.symbol,
+                    action: {
+                        label: 'Message',
+                        response: () => {
+                            toastStore.trigger({
+                                message: txStatus.error?.message || 'Unknown error',
+                                timeout: 5000,
+                                action
+                            })
+                        }
+                    }
+                })
+            } else {
+                toastStore.trigger({
+                    message: task.inAmount + ' ' + task.inToken.symbol + ' bridging in progress',
+                    action: viewTxAction(txHash, task.explorerLink, false)
+                })
+                leftTasks.push(task);
+            }
+
+        } catch (e) {
+            console.error('Error checking transaction status:', e);
+        }
+    }
+
+    bridgeTasks.set(leftTasks);
 }

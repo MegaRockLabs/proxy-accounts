@@ -10,7 +10,7 @@
 <button 
     on:click={onClick} 
     {disabled}
-    class="btn btn-xl bg-glass bg-glass-shadow rounded-container-token py-2 px-3 border border-white/20 {small ? "text-sm" : ""} {selectedStyles} {styles}"
+    class="btn btn-xl font-bold bg-glass bg-glass-shadow rounded-container-token py-2 px-3 border border-white/20 {small ? "text-sm" : ""} {selectedStyles} {styles}"
 >
 <!-- 
   -->

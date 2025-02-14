@@ -3,18 +3,18 @@
     import { accountCreationFees } from "$lib/registry";
     import { routeValues } from "$lib/values";
     import { Accordion, AccordionItem } from "@skeletonlabs/skeleton";
+    import { directRes } from '$lib/routes';
     $: feeCoin = $accountCreationFees.find(fee => fee.denom == NEUTRON_DENOM);
     export let creating = false;
 </script>
 
 
-{ #if $routeValues?.totalFeeValue }
+{ #if $directRes && $routeValues?.totalFeeUSD }
 
     {@const { 
-            totalFeeUSD, bridgeToken,
+            totalFeeUSD, bridgeToken, gasToken,
             bridgeValue, bridgeUSD, 
             gasValue, gasUSD, 
-            inToken 
         } = $routeValues 
     }
 
@@ -47,7 +47,7 @@
                             <div class="col-span-2 sm:col-span-1">Gas Fee</div>
                             <div class="col-span-2 sm:col-span-1 text-xs w-full flex justify-end">
                                 <div class="flex gap-3 items-center justify-end">
-                                    <img src="{inToken.meta.logo}" alt="send token logo" class="w-5 h-5" />
+                                    <img src="{gasToken.meta.logo}" alt="send token logo" class="w-5 h-5" />
                                     <span>{gasValue}</span>
                                     <div class="flex gap-1 items-center justify-end">
                                         <span></span>

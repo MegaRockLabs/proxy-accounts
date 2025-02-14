@@ -6,29 +6,33 @@
   import OutTokens from '../common/outTokens.svelte';
 
   import { selectedChain } from '$lib/chains';
-  import { getModalStore, ProgressRadial } from "@skeletonlabs/skeleton";
+  import { getModalStore, getToastStore, ProgressRadial } from "@skeletonlabs/skeleton";
   
   import type { Chain, CosmosToken, Token } from '$lib/types';
   
-  import { chainIdsToAddresses, NEUTRON_DENOM, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
+  import { BASESCAN, chainIdsToAddresses, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
   import { getInTokens, getOutTokens } from '$lib/tokens';
   
   import { foundAccountInfo } from '$lib/accounts';
   import { cosmosClient, skipClient } from '$lib/clients';
   import { userAddress } from '$lib/accounts';
-  import { directRes, executeRoute, setDirectResponse } from '$lib/routes';
+  import { directRes, executeRoute, setDirectResponse, viewTxAction } from '$lib/routes';
   
-  import { inToken, inValue, outToken, routeValues, updateInToken, updateOutToken } from '$lib/values';
   import InTokenInput from '../common/inTokenInput.svelte';
   import OutTokenButton from '../common/outTokenButton.svelte';
-  import { formatSeconds } from '$lib/utils';
-  import FeeAccordion from '../common/feeAccordion.svelte';
-  import { accountCreationFees } from '$lib/registry';
+  import { inToken, inValue, outToken, routeValues, updateInToken, updateOutToken } from '$lib/values';
+  import { onMount } from 'svelte';
+  import Calculated from '../common/calculated.svelte';
+  import { formatError } from '$lib/utils';
+  import { toastTransaction } from '$lib/toasts';
+  import { deleteBridgeTask } from '$lib';
+  import { updateAccountBalances } from '$lib/assets';
 
   export let parent: any = {} 
   if (parent) {}
 
 	const modalStore = getModalStore();
+  const toastStore = getToastStore();
 
 
   let loading = false;
@@ -72,22 +76,69 @@
       goFast,
     })
     .then(dirRes => setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID))
-    .then(vals => console.log('Direct messages calculated:', vals))
-    .catch(e => console.error('Error calculating direct messages', e))
+    .then(vals => {
+      console.log('Direct messages calculated:', vals)
+      error = '';
+    })
+    .catch(e => {
+      console.error('Error calculating direct messages', e)
+      error = formatError(e);
+      directRes.set(null)
+    })
     .finally(() => loading = false);
 
   }
 
+  let error: string = '';
 
   const deposit = async () => {
     const values = $routeValues;
     const direct = $directRes;
-    if (!values || !direct || direct.txs.length != 1) return;
+    const account = $foundAccountInfo;
+    if (!values || !direct || !account || direct.txs.length != 1) return;
+
+    loading = true;
+
+    const exec = await executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient);
+    console.log('Executing route:', exec);
+
+    let promise = exec.promise;
+    const txHash = exec.txHash;
+    const expLink = BASESCAN + txHash;
+    const action = viewTxAction(txHash, expLink);
+
+    if (values.routeSecs > 50) {
+      toastStore.trigger({
+        message: "Broadcasted",
+        autohide: false,
+        action: viewTxAction(txHash, expLink, false)
+      });
+      promise = new Promise(r => r);
+    } else {
+      toastTransaction(
+        toastStore, 
+        "Depositing",  
+        "Success", 
+        promise,
+        { action }
+      );
+    } 
     
-    executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient)
-    .then(() => modalStore.clear())
-    .catch(e => console.error('Error withdrawing', e))
-    .finally(() => loading = false);
+    promise.then(depres => {
+      console.log('Deposited res:', depres);
+      error = '';
+      deleteBridgeTask(txHash);
+      modalStore.clear();
+      updateAccountBalances($cosmosClient, account.address);
+    })
+    .catch(e => {
+      console.error('Error depositing route', e);
+      error = formatError(e);
+    })
+    .finally(() => {
+      directRes.set(null)
+      loading = false;
+    })
   }
 
 
@@ -96,6 +147,11 @@
       calculateDirectMessages()
     } else {
       deposit()
+      .catch(e => {
+        console.error('Error depositing', e);
+        error = formatError(e);
+        loading = false;
+      });
     }
   }
 
@@ -104,12 +160,11 @@
 		modalStore.clear();
 	};
 
+  onMount(() => directRes.set(null))
+
   // reset all available tokens on chain change
   $: if ($selectedChain) updateChain($selectedChain)
-
-    
-  $: if ($inToken || $outToken || $inValue)  directRes.set(null);
-
+  $: if ($inToken || $outToken || $inValue || error)  directRes.set(null);
 </script>
 
 
@@ -117,9 +172,10 @@
 <OutTokens tokens={outTokens} />
 
 
+
 <GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5 overflow-auto max-h-screen">
 
-  <ElevatedBox styles="py-1 md:p-3 overflow-scroll"><h3 class="text-md font-bold ">Deposit</h3></ElevatedBox>
+  <ElevatedBox><h3 class="h3 font-bold">Deposit</h3></ElevatedBox>
 
   { #if $inToken && $routeValues  }
       
@@ -131,42 +187,27 @@
 
         { #if outToken && outTokens.length }
 
-          <div class="relative py-2">
-            <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="recieve">Recieve</label>
-            <div class="flex w-full justify-between items-stretch ">
-
-              <div class="border-b border-grey-100 text-lg p-7 w-full flex gap-3">
-
-                <span>
-                  {outValue || "឴"}
-                </span>
-
+          <div class="relative ">
+            <label class="absolute top-1 left-2 label text-xs text-gray-200 " for="recieve">Recieve</label>
+            <div class="flex w-full justify-between items-stretch gap-3 " >
+              
+              <div class="border-b border-grey-100 text-lg py-5 px-1 sm:px-7 w-full flex gap-3 relative  sm:py-7">
                 { #if outUSD && outUSD != "0.00" }
-                  <span class="absolute bottom-2 left-7 label text-xs text-gray-200 ">( ${outUSD} )</span>
+                  <span class="absolute bottom-1 left-3 sm:left-7 label text-xs text-gray-200 ">( ${outUSD} )</span>
                 { /if }
-                
+                <span>
+                  {outValue ? outValue.toFixed(4) : "឴"}
+                </span>
               </div>
 
               <OutTokenButton disabled={loading} />
-
             </div>
-
           </div>
 
         { /if }
 
-        
-        { #if $routeValues?.routeSecs }
-          <div class="w-full flex items-center justify-between font-bold px-1 sm:px-4">
-            <div>Estimated Time</div>
-            <div class="flex justify-between items-center gap-4 text-sm sm:text-base">
-              <span>{formatSeconds($routeValues.routeSecs)}</span>
-            </div>
-          </div>
-        { /if }
 
-
-        <FeeAccordion />
+        <Calculated {error} />
         
         
         <div class="flex justify-end items-center px-2 my-3">
