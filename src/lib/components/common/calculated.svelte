@@ -4,6 +4,8 @@
     import { routeValues } from "$lib/values";
     import FeeAccordion from "./feeAccordion.svelte";
     export let error: string = "";
+    export let creating = false;
+
 </script>
 
 <div class="my-2 flex flex-col justify-between gap-5">
@@ -25,7 +27,7 @@
         </div>
     </div>
 
-    <FeeAccordion />
+    <FeeAccordion {creating} />
         
 { /if }
         

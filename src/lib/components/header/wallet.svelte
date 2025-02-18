@@ -2,13 +2,25 @@
     import Box from "./box.svelte";
     import { formatAddress } from "$lib/utils";
     import { appKit } from "$lib/appkit";
-    import { wagmiAdapter, walletIcon } from "$lib/signers";
+    import { wagmiAdapter, walletIcon, walletName } from "$lib/signers";
     import { selectedChain } from "$lib/chains";
 
     import { cosmosClient } from "$lib/clients";
     import { onEthAddressFound, onSolAddressFound } from "$lib";
     import { userAddress, foundAccountInfo } from "$lib/accounts";
+    import { LOGO_METAMASK } from "$lib/vars";
 
+
+    const updateIcon = (name: string, icon : string) => {
+        if (!icon) {
+            if (name) {
+                // TODO: add more wallet icons
+                walletIcon.set(LOGO_METAMASK);
+            }
+        }
+    }
+
+    $: if ($walletName) updateIcon($walletName, $walletIcon);
 
 
     const onClick = () => {

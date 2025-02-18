@@ -22,17 +22,19 @@
 	
 	const toastStore = getToastStore();
 
-	let taskProcessed = false;
 	
 	onMount(() => {
-		onMountLogic();
-		console.log('bridgeTasks', $bridgeTasks);
+		onMountLogic()
+		.then(() => {
+			// console.log('onMountLogic done');
+			console.log('bridgeTasks', $bridgeTasks);
+			const tasks = $bridgeTasks;
+			if (tasks) {
+				processBridgeTasks($skipClient, tasks, toastStore);
+			};
+		});
 	});
 
-	$: if ($skipClient && $bridgeTasks && toastStore && !taskProcessed) {
-		taskProcessed = true;
-		processBridgeTasks($skipClient, $bridgeTasks, toastStore);
-	}
 
 </script>
 
@@ -46,7 +48,7 @@
 />
 
 
-<AppShell class="transition- ease-in-out duration-500  bg-no-repeat bg-cover">
+<AppShell class="transition- ease-in-out duration-500  bg-no-repeat bg-cover bg-magic">
 	
 	<svelte:fragment slot="pageHeader">
 		<!-- App Bar -->

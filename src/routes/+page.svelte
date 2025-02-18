@@ -13,8 +13,6 @@
 
   $: hasAccount = Boolean($foundAccountInfo);
 
-  $: console.log('accountBalances', $accountBalances);
-
   const createClick = () => {
     modalStore.trigger({
         type: 'component',
@@ -46,12 +44,12 @@
 <Container styles="z-20 font-bold">
 
     
+  
+  { #if hasAccount  }
+
     <DashHeader />
 
     <Separator />
-
- 
-    { #if hasAccount }
 
     <div class="flex flex-col gap-5 font-bold">
         {#each $accountBalances as bal}
@@ -76,32 +74,35 @@
     </div>
 
         
+    <div class="flex w-full justify-end gap-5 mt-5">
+      <ElevatedButtonBox onClick={deposit} small={false}>
+        Deposit
+      </ElevatedButtonBox>
+
+      <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x') && false}>
+        Withdraw
+      </ElevatedButtonBox>
+    </div>
+    
         
-    { :else }
+  { :else }
 
-        <div class="flex">
-            <ElevatedButtonBox styles="col-span-2" onClick={createClick}>
-                Create Account
-            </ElevatedButtonBox>
-        </div>
+    <DashHeader header={"No Accounts"} />
+    <Separator />
 
-    {/if}
 
-    { #if foundAccountInfo }
-      
-      <div class="flex w-full justify-end gap-5 mt-5">
-        <ElevatedButtonBox onClick={deposit} small={false}>
-          Deposit
-        </ElevatedButtonBox>
+    <div class="flex w-full justify-center">
+      <ElevatedButtonBox styles="col-span-2" small={false} onClick={createClick}>
+          Create New
+      </ElevatedButtonBox>
+    </div>
 
-        <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x') && false}>
-          Withdraw
-        </ElevatedButtonBox>
-      </div>
-      
-    {/if }
+  {/if}
 
-    <Separator size={5} />
+
+  <Separator size={5} />
+
+
 
 
 </Container>

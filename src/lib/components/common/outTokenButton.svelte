@@ -1,8 +1,10 @@
 <script lang="ts">
   import { popup } from "@skeletonlabs/skeleton";
   import { outTokensPopup, routeValues } from "$lib/values";
+  import type { Token } from "$lib/types";
   export let disabled : boolean = false;
-  $: outToken = $routeValues.outToken;
+  export let token : Token | null = null;
+  $: outToken = token ?? $routeValues.outToken;
 </script>
 
 

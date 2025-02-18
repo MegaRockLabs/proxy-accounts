@@ -9,6 +9,7 @@
   import { wagmiAdapter } from "$lib/signers";
   import { selectedChain } from "$lib/chains";
   import { userAddress } from "$lib/accounts";
+  import type { ChangeEventHandler } from "svelte/elements";
   
   
   export let disabled : boolean = false;
@@ -38,6 +39,10 @@
   
   }
 
+  const onChange  = (e : any)  => {
+    updateInValue($routeValues, e.target.value);
+  }
+
   const setMax = () => {
     if (!balance || !token) return;
     const num = parseFloat(formatUnits(balance, token.decimals));
@@ -48,10 +53,10 @@
   
 </script>
 
-<div>
+<div class="mt-3">
   <div class="border border-grey-100 rounded-container-token relative ">
     
-    <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="pay">Pay</label>
+    <label class="absolute top-2 left-2 label text-xs text-gray-200 " for="pay">Give</label>
     { #if $routeValues.inUSD }
       <span class="absolute bottom-2 left-2 sm:left-6 text-xs text-gray-200  ">( ${$routeValues.inUSD} )</span>
     {/if}
@@ -63,7 +68,7 @@
           class="py-5 px-3 sm:p-7 flex w-full bg-transparent text-lg border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
           step={token.meta.step ?? token.meta.min} 
           min={0} 
-          on:change={() => updateInValue($routeValues, $inValue)}
+          on:change={onChange}
           bind:value={$inValue}
           {disabled}
       />

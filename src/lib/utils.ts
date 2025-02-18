@@ -187,5 +187,9 @@ export const formatError = (error: any) => {
         return "Insufficient funds"
     }
 
+    if (low.includes("exists")) {
+        return "Account controlled by this credential already exists"
+    }
+
     return text;
 }

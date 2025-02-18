@@ -245,7 +245,6 @@
         <input id="to" type="text" bind:value={outAddress}
           class="pt-5 pb-2 px-2 sm:px-3 md:px-7 sm:pt-7 sm:pb-3 flex w-full bg-transparent border-none text-xs sm:text-md "
         >
-       <!--  py-5 px-3 sm:p-7 -->
       </div>
 
       { #if outToken && outTokens.length }

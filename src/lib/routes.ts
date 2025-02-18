@@ -419,6 +419,10 @@ export const setRouteValues = async (
     values.inParsed = BigInt(newRoute.amountIn);
     values.outParsed = BigInt(newRoute.amountOut);
 
+    if (creationFeeCoin) {
+        values.outParsed -= BigInt(creationFeeCoin.amount);
+    }
+
     const newIn = parseFloat(formatUnits(values.inParsed, values.inToken.decimals));
     const newOut = parseFloat(formatUnits(values.outParsed, values.outToken.decimals));
     const outUsd = newOut * values.outPrice;
@@ -482,9 +486,7 @@ export const executeRouteCosmwasm = async (
 
     let fee : StdFee | 'auto' = 'auto';
     
-    console.log('all grants', grants);
     const grant = grants.find(fg => fg.granter == account.address && fg.grantee == signerAddress);
-    console.log('grant', grant);
 
     if (grant) {
         const gasAdjustment = 1.5;
@@ -617,7 +619,6 @@ export const parseCosmosActions = (
     const actions : AccountAction[] = [];
 
     const parsed = camelizeObject(JSON.parse(multiChainMsg.msg));
-    console.log('parsed', parsed);
 
     if (multiChainMsg.msgTypeURL == MsgTransfer.typeUrl) {
       const tr : MsgTransfer = MsgTransfer.fromJSON(parsed)
@@ -696,7 +697,6 @@ export const calculateCosmosTxs = async (
       true
     ) as MsgExecuteContractEncodeObject;
 
-    console.log('wasmMsg', wasmMsg);
 
     const cosmosTx : CosmosTx = {
       chainID: NEUTRON_ID,
@@ -723,14 +723,12 @@ export const updateBridgeFee = (
     fees                : EstimatedFee[],
     creationFeeCoin?    : FullCoin
 ) => {
-    console.log('updating bridge fee', fees);
     const token = values.inToken;
     const feeLength = fees.length;
     values.bridgeParsed = BigInt(0);
     values.bridgeValue = "";
     values.bridgeUSD = 0;
 
-    console.log('bridge fee inPrice', values.inPrice);
     
     for (const fee of fees) {
         const denom = fee.originAsset.denom;
@@ -739,33 +737,26 @@ export const updateBridgeFee = (
 
         if (feeLength == 1) {
             values.bridgeToken = AllTokensMap[denom];
-            console.log('bridge token', values.bridgeToken);
             values.bridgeParsed = BigInt(fee.amount);
             values.bridgeValue = parseFloat(
                 formatUnits(values.bridgeParsed, values.bridgeToken.decimals)
             ).toString();
         } 
     }
-    console.log('bridge fee loop', values.bridgeValue, values.bridgeUSD);
 
     if (!values.bridgeValue && values.inPrice && values.bridgeUSD) {
         values.bridgeValue = (values.bridgeUSD / values.inPrice).toString();
         values.bridgeParsed = parseUnits(values.bridgeValue, token.decimals);
     }
-    console.log('bridge fee from usd', values.bridgeValue, values.bridgeUSD);
-
     values.bridgeToken ??= token;
     values.bridgeValue = values.bridgeValue ? formatValue(values.bridgeValue, values.bridgeToken) : "";
 
-
-    console.log('bridge fee formatted', values.bridgeValue, values.bridgeUSD);
 
     const totalUsd = values.bridgeUSD 
         + parseFloat(values.gasUSD ?? "0") 
         + (creationFeeCoin ? parseFloat(creationFeeCoin.amount) : 0);
 
     const value = totalUsd / (values.inPrice || 1);
-    console.log('total usd:', totalUsd, " / ", values.inPrice, " = ", value);
 
     values.totalFeeUSD = totalUsd.toFixed(3);
     values.totalFeeValue = formatValue(value, token);
@@ -796,7 +787,6 @@ export const updateGasFee = async (
 
     if ('evmTx' in tx) {
         const evmTx = tx.evmTx;
-        console.log('evmTx', evmTx);
         const client = await getEthClient(chainID);
 
         const gas = await estimateGas(client, {
@@ -817,12 +807,10 @@ export const updateGasFee = async (
 
     } else if ('cosmosTx' in tx) {
         const cosmosTx = tx.cosmosTx;
-        console.log('gas for cosmosTx', cosmosTx);
 
         if (relayer) {
             const msg = cosmosTx.msgs[0];
             const parsed = JSON.parse(msg.msg); 
-            console.log('parsed cosmos tx', parsed);
 
             const value = MsgExecuteContract.fromPartial({
                 contract: parsed.contract,
@@ -858,16 +846,12 @@ export const updateGasFee = async (
         console.error('Unknown tx type:', tx);
     }
 
-    console.log('gas fee', values.gasUSD);
-    console.log('bridge fee', values.bridgeUSD);
-    console.log('creation fee', creationFeeCoin?.amountUsd);
 
     const totalUsd = parseFloat(values.gasUSD) 
         + (values.bridgeUSD || 0) 
         + (creationFeeCoin ? parseFloat(creationFeeCoin.amountUsd) : 0);
 
     const value = totalUsd / (values.inPrice || 1);
-    console.log('total usd:', totalUsd, " / ", values.inPrice, " = ", value);
 
     values.gasUSD = parseFloat(values.gasUSD).toFixed(2);
 

@@ -19,14 +19,10 @@ export const updateInToken = async (
   if (assign) inToken.set(token);
   values.inToken = token;
   values.inPrice = token.meta.isUsd ? 1 : (await getPrice(token.meta.geckoName));
-
   const accBal = accountBalanceMap[token.denom];
-  const bal = parseUnits(accBal?.amount || "0", token.decimals);
-  const hum = formatUnits(bal, token.decimals);
-  const floored = Math.floor(parseFloat(hum));
-  const val = floored ? Math.min(floored, token.meta.min) : token.meta.min;
-  console.log("val", val);
-  
+  const bal = BigInt(accBal?.amount || 0);
+  const hum = parseFloat(formatUnits(bal, token.decimals));
+  const val = hum ? Math.min(hum, token.meta.min) : token.meta.min;
   return updateInValue(values, val);
 }
 

@@ -40,8 +40,9 @@
   let inChain : Chain;
   let inTokens : Token[] = [];
   let outTokens : CosmosToken[] = [];
+  
+  let error: string = '';
 
-  let goFast : boolean = true;
 
 
   const updateChain = async (chain: Chain) => {
@@ -73,7 +74,6 @@
       slippageTolerancePercent: "8",
       chainIdsToAddresses,
       sourceAssetChainID,
-      goFast,
     })
     .then(dirRes => setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID))
     .then(vals => {
@@ -89,7 +89,6 @@
 
   }
 
-  let error: string = '';
 
   const deposit = async () => {
     const values = $routeValues;
@@ -173,7 +172,7 @@
 
 
 
-<GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5 overflow-auto max-h-screen">
+<GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5 overflow-auto max-h-screen pt-3">
 
   <ElevatedBox><h3 class="h3 font-bold">Deposit</h3></ElevatedBox>
 

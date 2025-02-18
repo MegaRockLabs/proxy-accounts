@@ -99,30 +99,24 @@ export const updateAccountInfo = (client: CosmosClient, address: string) => {
 
     
 
-
-
-
-export const createAccount = async (
-    client: SigningCosmWasmClient,
+export const createAccountMsg = (
     signer: string,
     feeCoin: Coin,
     account_data: CredentialData,
-    msgOnly: boolean = false
 ) => {
-
     const actions : AccountAction[] = [
         {
             fee_grant: {
                 grantee: signer,
                 allowance: {
-                    spend_limit: [ { amount: "5000000", denom: feeCoin.denom } ],
+                    spend_limit: [ { amount: "10000000", denom: feeCoin.denom } ],
                 }
             }
         }
     ];
     
 
-    const msg = {
+    return {
         create_account: {
             code_id: NEUTRON_ACCOUNT_ID,
             chain_id: NEUTRON_ID,
@@ -132,9 +126,18 @@ export const createAccount = async (
             }
         }
     }
+}
 
-    if (msgOnly) return msg;
-    
+
+
+export const createAccount = async (
+    client: SigningCosmWasmClient,
+    signer: string,
+    feeCoin: Coin,
+    account_data: CredentialData,
+) => {
+
+    const msg = createAccountMsg(signer, feeCoin, account_data);
 
     const res = await client.execute(
         signer,
@@ -244,8 +247,6 @@ export const executeAccountActions = async (
     }
 
     const execute : any = { execute: { msgs: [{ custom }] } };
-
-    console.log("execute", execute);
     
     if (msgOnly) {
         const msg : MsgExecuteContractEncodeObject = {
@@ -263,182 +264,3 @@ export const executeAccountActions = async (
 }
 
 
-
-/* 
-export const executeAccount = async (
-    client          : SigningClient,
-    signerAddress   : string,
-    accountAddress  : string,
-    messages        : ExecuteAccountMsg[],
-    funds           : Coin[],
-    chainId         : string,
-    memo            : string = ""
-) => {
-
-    const info = Neutron;
-    const gasAdjustment = 2.1;
-
-    const msgs : MsgExecuteContractEncodeObject[] = messages.map(msg => ({
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: MsgExecuteContract.fromPartial({
-            contract: accountAddress,
-            msg: toUtf8(JSON.stringify(msg)),
-            sender: signerAddress,
-            funds
-        })
-    }));
-
-    let fee : StdFee | "auto" = "auto";
-
-    if (get(activeFeeGrants)
-        .find(fg => fg.granter == accountAddress && fg.grantee == signerAddress)
-            !== undefined
-    ) {
-        const amount = await client.simulate(signerAddress, msgs, memo);
-        const gas = Math.round(amount * gasAdjustment);
-
-        fee = {
-            ...calculateFee(gas, info.gasPrice),
-            granter: accountAddress,
-            payer: signerAddress,
-        };
-    }
-
-    const result = await client.signAndBroadcast(
-        signerAddress,
-        msgs,
-        fee,
-        memo,
-    )
-
-
-
-    return result;
-}
-
-
-
-export const executeAccountActions = async (
-    signingClient   : SigningClient,
-    signingWallet   : AppWallet,
-    state           : AppState,
-    accountAddress  : string,
-    accountInfo     : AccountInfo | undefined | any,
-    messages        : AccountAction[],
-    funds           : Coin[] = [],
-    wallets         : AppWallet[] = [],
-    memo            : string = "",
-) => {
-
-
-    const address = state.lastAddress;
-    const chain_id = state.lastChainId;
-    const signerAddress = signingWallet.address;
-
-    
-    if (false && signerAddress === address) {
-
-        console.log("native caller", accountInfo);
-        console.log("messages", messages);
-
-        return executeAccount(
-            signingClient, 
-            signingWallet.address, 
-            accountAddress, 
-            messages, 
-            funds, 
-            chain_id, 
-            memo
-        );
-
-    } else {
-
-        const nonce : string = await signingClient.queryContractSmart(accountAddress, { account_number: {} });
-            
-        let data : any = {
-            chain_id,
-            contract_address: accountAddress,
-            messages,
-            nonce
-        }
-        
-        console.log("accountInfo", accountInfo);
-        const verifying = accountInfo?.verifying;
-        if (!verifying) {
-            throw new Error("Native account is not created and no no custom ids on the account");
-        }
-
-        let signature : string = "", extension : string | undefined = undefined;
-
-        if (verifying.name === "eth_personal_sign") {
-            const ethAddress  =  accountInfo.verifying!.human_id!;
-            const ethWallets = wallets.filter(wallet => wallet.isEthereum);
-            const found = ethWallets.find(wallet => wallet.hasAccount({ address: ethAddress }));
-            
-            if (!found) {
-                let text : string = "Couldn't find Ethereum wallet for address: " + ethAddress + "\n";
-                if (ethWallets.length > 0) {
-                    text +=  ethWallets.reduce(
-                        (acc, wallet) => acc + wallet.accounts.map(a => a.address).join(", "),
-                        "Available addresses:"
-                    )
-                }
-                throw new Error(text);
-            }
-
-            // @ts-ignore
-            const cred = { signature: "" } //(await getEthPersonalSignCredential(window.ethereum!, JSON.stringify(data), ethAddress)).eth_personal_sign;
-            
-            data = toBinary(data);
-            signature = cred.signature
-
-        } else if (verifying.name === "passkey") {
-            
-            //const id = new TextDecoder().decode(new Uint8Array(verifying.id!));
-
-            let id = verifying.human_id;
-            const str = JSON.stringify(data);
-            console.log("JSON data:", str);
-     
-            const text = JSON.stringify(data);
-            const utf = toUtf8(text);
-            const base64 = toBase64(utf);
-   
-            
-            // @ts-ignore
-            const cred = { signature: "", authenticator_data: {}, client_data: { challenge: ""} } //(await getPasskeyCredential(JSON.stringify(data), id)).passkey
-            signature = cred.signature;
-
-            const passkeyExtension : any = {
-                authenticator_data: cred.authenticator_data,
-                // client_data: cred.client_data,
-            }
-
-            console.log("Passkey cred:", cred);
-            console.log("Passkey extension:", passkeyExtension);
-
-            data = cred.client_data.challenge; // toBinary("c3RhcnN2YWxvcGVyMXE0OHZ5enp6ODJraDlzbjJ6c3NsbmEzbWh1ang3MHM3eWc1anpm")
-            extension = toBinary(passkeyExtension)
-
-        } else {
-            throw new Error("Account is controlled by a credential that is not supported by this app");
-        }
-    
-        const custom : SignedAccountActions = {
-            data,
-            signature
-        };
-        
-        if (extension) {
-            custom.payload = {
-                extension
-            };
-        }
-
-        const execute : ExecuteAccountMsg = { execute: { msgs: [{ custom }] } };
-        return executeAccount(signingClient, signerAddress, accountAddress, [execute], funds, chain_id, memo);
-    }
-
-}
-
- */
