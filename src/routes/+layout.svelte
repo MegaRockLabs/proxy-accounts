@@ -38,6 +38,17 @@
 
 </script>
 
+
+<svelte:head>
+	<title>Proxy Accounts</title>
+	<meta name="description" content="Proxy Accounts | by MegaRock" />
+	<link rel="canonical" href="https://megarock.app/proxy" />
+	<link rel="alternate" media="only screen and (max-width: 640px)"  href="https://megarock.app/proxy">
+
+
+</svelte:head>
+
+
 <Modal zIndex='z-[999]' components={modalRegistry} />
 <Toast zIndex='z-[1000]' 
 	position='tr' 

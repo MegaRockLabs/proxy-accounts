@@ -108,18 +108,21 @@
 
     if (values.routeSecs > 50) {
       toastStore.trigger({
-        message: "Broadcasted",
+        message: "Deposit Broadcasted",
         autohide: false,
         action: viewTxAction(txHash, expLink, false)
       });
-      promise = new Promise(r => r);
+      promise = new Promise((resolve) => resolve(null));
     } else {
       toastTransaction(
         toastStore, 
         "Depositing",  
         "Success", 
         promise,
-        { action }
+        { action },
+        { action: viewTxAction(txHash, expLink, false),
+          hideDismiss: true 
+        }
       );
     } 
     

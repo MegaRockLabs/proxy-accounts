@@ -1,4 +1,4 @@
-import { base, solana, type AppKitNetwork } from '@reown/appkit/networks';
+import { base, type AppKitNetwork } from '@reown/appkit/networks';
 import type { Metadata } from "@reown/appkit";
 import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
 import type { ExperimentalFeature } from '@skip-go/client';
@@ -17,7 +17,6 @@ export const chainIdsToAddresses : Record<string, string> = {
     "neutron-1": "neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3",
     "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
     "cosmoshub-4": "cosmos16z43tjws3vw06ej9v7nrszu0ldsmn0eyx09uhk",
-
 };
 
 
@@ -63,8 +62,11 @@ export const NEUTRON_IBC_ATOM = "ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE
 "neutron1cw20kzuq88l5nza6xyhl93tpl58f5elvt2x58egus0ky7tzfef0qjzalaf"
 "neutron1eua378gwp60uhvdxrk5qmwumy5xzxdh3z7clnk0040707rcna8cs4e6tdj"
 "neutron1pfsrkgunyxsmw5p4sru6r7dcf4xxt87s92jvyelcylmwx50pug6s9kuvyf"
+"neutron1eev6sv6xal9tyxg6wl6048fmrwsphslvjg9xl6tgmllmd7g6r6ysthasr3"
 */
-export const NEUTRON_REGISTRY = "neutron1eev6sv6xal9tyxg6wl6048fmrwsphslvjg9xl6tgmllmd7g6r6ysthasr3"
+
+
+export const NEUTRON_REGISTRY = "neutron1cvsrhtdk0tfhzpepjqt4nj6scxzg4zq87kl5xxed9a4clmj7zyaqru9kuy"
 export const NEUTRON_ACCOUNT_ID = 3113
 
 

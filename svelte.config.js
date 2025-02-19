@@ -18,8 +18,7 @@ const config = {
 			fallback: null
 		}),
 
-		paths: {
-		}
+		paths: {}
 	}
 };
 export default config;

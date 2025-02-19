@@ -8,6 +8,7 @@
   import { getModalStore } from '@skeletonlabs/skeleton';
   import { foundAccountInfo, userAddress } from '$lib//accounts';
   import { accountBalances } from '$lib//assets';
+  import { appKit } from '$lib/appkit';
 
   const modalStore = getModalStore();
 
@@ -37,6 +38,12 @@
     });
   }
 
+  const connect = () => {
+      appKit.open();
+  }
+
+  $: disabled = !$userAddress
+  $: console.log("userAddress", $userAddress, !!$userAddress)
 
 </script>
 
@@ -75,11 +82,11 @@
 
         
     <div class="flex w-full justify-end gap-5 mt-5">
-      <ElevatedButtonBox onClick={deposit} small={false}>
+      <ElevatedButtonBox onClick={deposit} small={false} {disabled}>
         Deposit
       </ElevatedButtonBox>
 
-      <ElevatedButtonBox onClick={withdraw} small={false} disabled={!hasAccount || !$userAddress?.startsWith('0x') && false}>
+      <ElevatedButtonBox onClick={withdraw} small={false} {disabled}>
         Withdraw
       </ElevatedButtonBox>
     </div>
@@ -92,9 +99,19 @@
 
 
     <div class="flex w-full justify-center">
-      <ElevatedButtonBox styles="col-span-2" small={false} onClick={createClick}>
-          Create New
-      </ElevatedButtonBox>
+
+      { #if $userAddress }
+
+        <ElevatedButtonBox styles="col-span-2" small={false} onClick={createClick} {disabled}>
+            Create New
+        </ElevatedButtonBox>
+
+      { :else }
+
+        <ElevatedButtonBox styles="col-span-2" small={false} onClick={connect}>
+            Connect Wallet
+        </ElevatedButtonBox>
+      {/if}
     </div>
 
   {/if}

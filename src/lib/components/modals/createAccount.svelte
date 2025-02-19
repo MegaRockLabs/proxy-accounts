@@ -44,7 +44,7 @@
   let inChain : Chain;
   let inTokens : Token[] = [];
   let outTokens : CosmosToken[] = [];
-  let controlAddress : string = '0xac03048da6065e584d52007e22c69174cdf2b91a';
+  let controlAddress : string;
   let error: string = '';
 
 
@@ -56,42 +56,7 @@
   })
 
 
-
-  let createMsg : any /* = {
-    "create_account": {
-        "code_id": 3113,
-        "chain_id": "neutron-1",
-        "msg": {
-            "account_data": {
-                "credentials": [
-                    {
-                        "eth_personal_sign": {
-                            "signer": "0xac03048da6065e584d52007e22c69174cdf2b91a",
-                            "signature": "tzoHP9lURloopz8eWtNZxWdcD65mKs+4xcGLtTOqZZMdjqVX8LUokJRvyjMFysGpPHkrkdN0yR+waLMZwoYdihw=",
-                            "message": "eyJjaGFpbl9pZCI6Im5ldXRyb24tMSIsImNvbnRyYWN0X2FkZHJlc3MiOiJuZXV0cm9uMWV1YTM3OGd3cDYwdWh2ZHhyazVxbXd1bXk1eHp4ZGgzejdjbG5rMDA0MDcwN3JjbmE4Y3M0ZTZ0ZGoiLCJtZXNzYWdlcyI6WyJDcmVhdGUgUHJveHkgQWNjb3VudCJdLCJub25jZSI6IjAifQ=="
-                        }
-                    }
-                ],
-                "with_caller": false
-            },
-            "actions": [
-                {
-                    "fee_grant": {
-                        "grantee": "neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3",
-                        "allowance": {
-                            "spend_limit": [
-                                {
-                                    "amount": "10000000",
-                                    "denom": "untrn"
-                                }
-                            ]
-                        }
-                    }
-                }
-            ]
-        }
-    }
-  } */
+  let createMsg : any;
 
   $: feeCoin = $accountCreationFees.find((fee : Coin) => fee.denom === NEUTRON_DENOM)!
 
@@ -137,7 +102,7 @@
         throw new Error('Only atomic bridging txs are supported');
       }
       const vals = await setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID, undefined, feeCoin)
-      await simulateCreation(vals)
+      await simulateCreation(vals);
       return vals;
     })
     .then(vals => {
@@ -156,7 +121,9 @@
 
  
   const signCreateMsg = async () => {
+
     const wagmi = $wagmiAdapter;
+
     const connector = await getWagmiConnector(wagmi);
     const addresses = await connector.getAccounts();
     const account = addresses[0].toLowerCase() as `0x${string}`;
@@ -182,6 +149,7 @@
       with_caller: false
     };
 
+    
     createMsg = createAccountMsg(
       $relayingAddress!,
       { denom: feeCoin!.denom, amount: feeCoin!.amount },
@@ -191,8 +159,8 @@
     controlAddress = account;
 
     console.log('create msg', createMsg);
-
   }
+
 
 
   export const simulateCreation = async (values?: RouteValues) => {
@@ -200,7 +168,7 @@
     const fee = $accountCreationFees.find(fee => fee.denom === NEUTRON_DENOM);
     if (!values || !fee || !$directRes) return;
 
-    const finalAmount = values.outParsed - BigInt(fee.amount);
+    // const finalAmount = values.outParsed - BigInt(fee.amount);
 
     const encoded = MsgExecuteContract.fromPartial({
         contract: NEUTRON_REGISTRY,
@@ -209,14 +177,12 @@
         funds: [{ denom: fee.denom, amount: fee.amount  }]
     })
 
-    const sim = await $relayingClient.simulate(
+    await $relayingClient.simulate(
       $relayingAddress, 
       [{ typeUrl: MsgExecuteContract.typeUrl, value: encoded }],
       ""
     )
-
   }
-
 
 
   const create = async () => {
@@ -237,16 +203,19 @@
         autohide: false,
         action: viewTxAction(txHash, expLink, false)
       });
-      promise = new Promise(r => r);
+      promise = new Promise((resolve) => resolve(null));
     } else {
       toastTransaction(
         toastStore, 
         "Creating Account",  
         "Success", 
         promise,
-        { action }
+        { action },
+        { action: viewTxAction(txHash, expLink, false),
+          hideDismiss: true 
+        }
       );
-    } 
+    };
 
     promise.then(accress => {
       console.log('Created res:', accress);
@@ -317,7 +286,7 @@
 
         <InTokenInput disabled={loading}/>
 
-        { #if createMsg }
+        { #if createMsg && controlAddress }
         
           <div class="border-b border-grey-100  relative py-2 mb-7 flex w-full justify-between items-center">
 

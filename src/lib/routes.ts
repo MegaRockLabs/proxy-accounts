@@ -489,16 +489,23 @@ export const executeRouteCosmwasm = async (
     const grant = grants.find(fg => fg.granter == account.address && fg.grantee == signerAddress);
 
     if (grant) {
+
+        let amount = 0;
         const gasAdjustment = 1.5;
-        const amount = await signerClient.simulate(signerAddress, msgs, "");
-        console.log('sim amount', amount);
-        const gas = Math.round(amount * gasAdjustment);
+
+        if (values.gasParsed) {
+            const sim = parseFloat(values.gasParsed.toString()) / 0.02 
+            amount = Math.round(sim * gasAdjustment);
+        } else {
+            const sim = await signerClient.simulate(signerAddress, msgs, "");
+            amount = Math.round(sim * gasAdjustment);
+        }
+        
         fee = {
-            ...calculateFee(gas, gasPrice),
+            ...calculateFee(amount, gasPrice),
             granter: account.address,
             payer: signerAddress,
         };
-        console.log('sim fee', fee);
     }
 
     const txres = await signerClient.signAndBroadcast(

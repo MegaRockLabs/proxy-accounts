@@ -8,7 +8,7 @@
   import { selectedChain } from '$lib/chains';
   import { getModalStore, getToastStore, ProgressRadial, type ToastSettings } from "@skeletonlabs/skeleton";
   
-  import type { MsgsDirectRequest, MsgsDirectResponse, Tx } from '@skip-go/client';
+  import type { MsgsDirectRequest, MsgsDirectResponse, Tx, TxStatusResponse } from '@skip-go/client';
   import type { Chain, CosmosToken, Token } from '$lib/types';
   import { chainIdsToAddresses, MINTSCAN, NEUTRON_DENOM, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
   import { NeutronTokenMap, BASE_WETH, BASE_USDC, BASE_AXL_USDC, BASE_ETH } from '$lib/tokens';
@@ -93,6 +93,7 @@
 
 
   const withdraw = async () => {
+
     const account = $foundAccountInfo;
     const values = $routeValues;
     const direct = $directRes;
@@ -106,29 +107,33 @@
       $activeFeeGrants, values
     );
 
-    let promise = execute.promise;
+    let promise : Promise<TxStatusResponse | null> = execute.promise;
     const txHash = execute.txHash;
     const action = viewTxAction(txHash);
 
-    if (values.routeSecs > 50) {
+    if (values.routeSecs > 45) {
       toastStore.trigger({
         message: "Broadcasted",
         autohide: false,
         action: viewTxAction(txHash, undefined, false)
       });
-      promise = new Promise(r => r);
+      // instantly resolving promise with empty value
+      promise = new Promise((resolve) => resolve(null));
     } else {
       toastTransaction(
         toastStore, 
         "Withdrawing",  
         "Success", 
         promise,
-        { action }
+        { action },
+        { action: viewTxAction(txHash, undefined, false),
+          hideDismiss: true 
+        }
       );
     }
 
-    promise.then(ex => {
-      console.log('Withdrawn', ex)
+    promise.then(res => {
+      console.log('Withdraw res', res)
       error = '';
       deleteBridgeTask(txHash);
       updateAccountBalances($cosmosClient, account.address);
@@ -193,6 +198,8 @@
   }
 
   const onClick = () => {
+    error = '';
+
     if (!$directRes || error) {
       calculateDirectMessages()
     } else {
@@ -242,7 +249,7 @@
       <div class="border border-grey-100 rounded-container-token relative">
         <label class="absolute top-1 sm:top-2 left-2 text-xs " for="to">To</label>
 
-        <input id="to" type="text" bind:value={outAddress}
+        <input id="to" type="text" bind:value={outAddress} placeholder="0x... (base)  or  neutron1..."
           class="pt-5 pb-2 px-2 sm:px-3 md:px-7 sm:pt-7 sm:pb-3 flex w-full bg-transparent border-none text-xs sm:text-md "
         >
       </div>

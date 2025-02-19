@@ -28,6 +28,9 @@ hash.txt
 contracts.txt
 artifacts/
 
+contracts/*/.cargo
+packages/*/.cargo
+
 # code coverage
 tarpaulin-report.*
 
@@ -37,3 +40,5 @@ e2e/gas_reports/*
 
 temp
 node_modules
+build
+.svelte-kit
