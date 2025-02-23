@@ -84,12 +84,10 @@ export const initRelayingClient = async () : Promise<SigningCosmWasmClient> => {
     const allAcoounts = await signer.getAccounts()
     const account = allAcoounts[0];
     relayingAddress.set(account.address);
-    console.log("Relaying all accounts", allAcoounts);
 
     // @ts-ignore
     const client = await SigningCosmWasmClient.connectWithSigner(NEUTRON_RPC, signer, { gasPrice } )
     relayingClient.set(client);
-
 
     return client;
 }

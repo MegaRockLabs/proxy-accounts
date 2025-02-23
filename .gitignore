@@ -34,9 +34,7 @@ packages/*/.cargo
 # code coverage
 tarpaulin-report.*
 
-# integration tests
-e2e/gas_reports/*
-
+static/bg2.jpg
 
 temp
 node_modules
