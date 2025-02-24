@@ -6,11 +6,11 @@
   import InTokens from '../common/inTokens.svelte';
 
   import { selectedChain } from '$lib/chains';
-  import { getModalStore, getToastStore, ProgressRadial, type ToastSettings } from "@skeletonlabs/skeleton";
+  import { getModalStore, getToastStore, ProgressRadial } from "@skeletonlabs/skeleton";
   
-  import type { MsgsDirectRequest, MsgsDirectResponse, Tx, TxStatusResponse } from '@skip-go/client';
-  import type { Chain, CosmosToken, Token } from '$lib/types';
-  import { chainIdsToAddresses, MINTSCAN, NEUTRON_DENOM, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
+  import type { MsgsDirectRequest, MsgsDirectResponse, TxStatusResponse } from '@skip-go/client';
+  import type { Chain, Token } from '$lib/types';
+  import { chainIdsToAddresses, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
   import { NeutronTokenMap, BASE_WETH, BASE_USDC, BASE_AXL_USDC, BASE_ETH } from '$lib/tokens';
   
   import { foundAccountInfo } from '$lib/accounts';
@@ -22,7 +22,7 @@
     updateInToken, updateOutToken
   } from '$lib/values';
 
-  import { calculateCosmosTxs, directRes, executeRoute, executeRouteCosmwasm, setDirectResponse, setRouteValues, viewTxAction } from '$lib/routes';
+  import { calculateCosmosTxs, directRes, executeRouteCosmwasm, setDirectResponse, viewTxAction } from '$lib/routes';
   import { relayingAddress } from '$lib/signers';
   import { userAddress } from '$lib/accounts';
   import InTokenInput from '../common/inTokenInput.svelte';
@@ -32,7 +32,7 @@
   import Calculated from '../common/calculated.svelte';
   import { toastTransaction } from '$lib/toasts';
   import { activeFeeGrants } from '$lib/cosmos';
-  import { bridgeTasks, deleteBridgeTask } from '$lib';
+  import { deleteBridgeTask } from '$lib';
   
   export let parent: any = {} 
   if (parent) {}
@@ -53,7 +53,6 @@
 
 
   const updateToAddress = (address: string) => {
-    console.log('updateToAddress', address);
     directRes.set(null);
     outAddress = address;
 
@@ -61,14 +60,12 @@
       const tokens = [BASE_WETH, BASE_ETH, BASE_USDC, BASE_AXL_USDC];
       if (outTokens.length != tokens.length) {
         outTokens = tokens;
-        console.log('updateToAddress eth', outTokens);
         updateOutToken($routeValues ?? {}, BASE_WETH);
       }
     } else if (outAddress.startsWith('neutron1') ) {
       const tokens = Object.values(NeutronTokenMap)
       if (outTokens.length != tokens.length) {
         outTokens = tokens;
-        console.log('updateToAddress ntrn', outTokens);
         updateOutToken($routeValues ?? {}, outTokens[0]);
       }
     } else {

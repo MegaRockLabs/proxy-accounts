@@ -2,7 +2,7 @@ import type { EstimatedFee, StatusState, SwapVenue, TxStatusResponse } from "@sk
 import { Base, CosmosHub, gasPrice, Neutron, Noble, Osmosis } from "./chains";
 import { ALL_ETH, AllTokensMap, ATOM, AXL_USDC, BASE_ETH, BASE_USDC, BASE_WETH, NOBLE_USDC, NTRN, NTRN_INPUT, SOLANA_USDC, WST_ETH } from "./tokens"
 import type { CosmosTx, MsgsDirectResponse, MultiChainMsg, RouteResponse, SkipClient, Tx } from "@skip-go/client";
-import type { FullCoin, AccountAction, CosmosClient, CosmosMsg, NeutronMsg, ParsedAccountInfo, RouteValues, ParsedGrant } from "./types";
+import type { FullCoin, AccountAction, CosmosClient, CosmosMsg, NeutronMsg, ParsedAccountInfo, RouteValues, ParsedGrant, Token } from "./types";
 import { camelizeObject, formatValue, idToChain } from "./utils";
 import { bridgeTasks, deleteBridgeTask, updateBridgeTask, type BridgeTask } from "$lib";
 import { executeAccountActions, foundAccountInfo, updateAccounts, userAddress } from "./accounts";
@@ -407,6 +407,43 @@ export const updateRoutePrices = async (values: RouteValues) => {
 }
 
 
+const emptyBridgeValues = (
+    values :  RouteValues
+) => {
+    values.bridgeValue = "";
+    values.bridgeUSD = 0;
+    values.bridgeParsed = BigInt(0);
+    values.gasValue = "";
+    values.gasUSD = "0";
+    values.gasParsed = BigInt(0);
+    values.totalFeeUSD = "0";
+    values.totalFeeValue = "";
+    values.totalFeeParsed = BigInt(0);
+    return values;
+}
+
+const filledTotalFeeValues = (
+    values : RouteValues,
+    token: Token,
+    coin? : FullCoin
+) => {
+
+    const totalUsd = values.bridgeUSD ?? 0 
+        + parseFloat(values.gasUSD ?? "0") 
+        + (coin ? parseFloat(coin.amountUsd) : 0);
+
+    const value = totalUsd / (values.inPrice || 1);
+
+    values.totalFeeUSD = totalUsd.toFixed(3);
+    values.totalFeeValue = formatValue(value, token);
+    values.totalFeeParsed = parseUnits(
+        value.toLocaleString('fullwide', {useGrouping:false}), 
+        token.decimals
+    );
+    return values;
+}
+
+
 
 export const setRouteValues = async (
     values              : RouteValues, 
@@ -415,6 +452,7 @@ export const setRouteValues = async (
 ) => {
     console.log('setting route values', newRoute);
 
+    values = emptyBridgeValues(values);
     values = await updateRoutePrices(values);
     values.inParsed = BigInt(newRoute.amountIn);
     values.outParsed = BigInt(newRoute.amountOut);
@@ -458,7 +496,13 @@ export const setDirectResponse = async (
     const tx = direct.txs[0];
     
     values = await setRouteValues(values, direct.route, creationFeeCoin)
-    return await updateGasFee(values, tx, address, chainID, relayer, creationFeeCoin)
+
+    try {
+        values = await updateGasFee(values, tx, address, chainID, relayer, creationFeeCoin)
+    }  catch (e) {
+        console.error('Error updating gas fee:', e);
+    }
+    return values;
 }
 
     
@@ -758,20 +802,7 @@ export const updateBridgeFee = (
     values.bridgeToken ??= token;
     values.bridgeValue = values.bridgeValue ? formatValue(values.bridgeValue, values.bridgeToken) : "";
 
-
-    const totalUsd = values.bridgeUSD 
-        + parseFloat(values.gasUSD ?? "0") 
-        + (creationFeeCoin ? parseFloat(creationFeeCoin.amount) : 0);
-
-    const value = totalUsd / (values.inPrice || 1);
-
-    values.totalFeeUSD = totalUsd.toFixed(3);
-    values.totalFeeValue = formatValue(value, token);
-    values.totalFeeParsed = parseUnits(
-        value.toLocaleString('fullwide', {useGrouping:false}), 
-        token.decimals
-    );
-
+    values = filledTotalFeeValues(values, token, creationFeeCoin);
     routeValues.set(values);
     return values;
 }
@@ -853,22 +884,8 @@ export const updateGasFee = async (
         console.error('Unknown tx type:', tx);
     }
 
-
-    const totalUsd = parseFloat(values.gasUSD) 
-        + (values.bridgeUSD || 0) 
-        + (creationFeeCoin ? parseFloat(creationFeeCoin.amountUsd) : 0);
-
-    const value = totalUsd / (values.inPrice || 1);
-
     values.gasUSD = parseFloat(values.gasUSD).toFixed(2);
-
-    values.totalFeeUSD = totalUsd.toFixed(3);
-    values.totalFeeValue = formatValue(value, token);
-    values.totalFeeParsed = parseUnits(
-        value.toLocaleString('fullwide', {useGrouping:false}), 
-        token.decimals
-    );
-
+    values = filledTotalFeeValues(values, token, creationFeeCoin);
     routeValues.set(values);
     return values;
 }

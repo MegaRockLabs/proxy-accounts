@@ -67,7 +67,7 @@
         id="pay" type="number" 
           class="py-5 px-3 sm:p-7 flex w-full bg-transparent text-lg border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
           step={token.meta.step ?? token.meta.min} 
-          min={0} 
+          min={token.meta.min}
           on:change={onChange}
           bind:value={$inValue}
           {disabled}

@@ -1,12 +1,10 @@
-import { derived, writable } from 'svelte/store';
 import type { Chain, CosmosToken, Token, TokenMeta } from './types';
 import { BASE_ID, LOGO_ATOM, LOGO_ETH, LOGO_NTRN, LOGO_USDC, NEUTRON_ID, SOLANA_ID } from './vars';
-import { selectedChain } from './chains';
 
 
 export const USDC_INPUT : TokenMeta = {
     default: 10,
-    min: 3,
+    min: 1,
     step: 1,
     geckoName: "usd-coin",
     logo: LOGO_USDC,
@@ -14,8 +12,9 @@ export const USDC_INPUT : TokenMeta = {
 }
 
 export const ETH_INPUT : TokenMeta = {
-    default: 0.0005,
+    default: 0.001, 
     min: 0.0005,
+    step: 0.0001,
     geckoName: "ethereum",
     logo: LOGO_ETH,
     isEth: true,
@@ -23,7 +22,8 @@ export const ETH_INPUT : TokenMeta = {
 
 export const WST_ETH_INPUT : TokenMeta = {
     default: 0.001,
-    min: 0.001,
+    min: 0.0005,
+    step: 0.0001,
     geckoName: "wrapped-steth",
     logo: "https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/wsteth.svg",
     isEth: true,

@@ -12,7 +12,7 @@ import type { OfflineAminoSigner } from "@keplr-wallet/types";
 import type { SolanaAdapter } from '@reown/appkit-adapter-solana'
 import type { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { universalProvider } from "./appkit";
-import { BASE_ID, SOLANA_ID } from "./vars";
+import { BASE_ID } from "./vars";
 
 export const relayingAddress = writable<string>();
 export const relayingSigner = writable<Secp256k1HdWallet>();

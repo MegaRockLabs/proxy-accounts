@@ -7,7 +7,7 @@ import type { ExperimentalFeature } from '@skip-go/client';
 export const metadata : Metadata = {
     name: 'Proxy Accounts',
     description: 'Alternative credentials for Cosmos Dapps',
-    url: 'http://localhost:5174', 
+    url: 'https://megarock.app/proxy', 
     icons: ['https://assets.reown.com/reown-profile-pic.png']
 }
 
@@ -58,11 +58,10 @@ export const NEUTRON_ID = "neutron-1"
 export const NEUTRON_DENOM = "untrn"
 export const NEUTRON_IBC_ATOM = "ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9"
 
+
 /* 
-"neutron1cw20kzuq88l5nza6xyhl93tpl58f5elvt2x58egus0ky7tzfef0qjzalaf"
-"neutron1eua378gwp60uhvdxrk5qmwumy5xzxdh3z7clnk0040707rcna8cs4e6tdj"
-"neutron1pfsrkgunyxsmw5p4sru6r7dcf4xxt87s92jvyelcylmwx50pug6s9kuvyf"
-"neutron1eev6sv6xal9tyxg6wl6048fmrwsphslvjg9xl6tgmllmd7g6r6ysthasr3"
+neutron1wd2tsamztw8gthn96ldthc628k0a3p08vmsj2c2j05pn3ntp7ets06ugj8
+
 */
 
 

@@ -27,7 +27,7 @@
   import OutTokenButton from '../common/outTokenButton.svelte';
   import Calculated from '../common/calculated.svelte';
   import { inToken, inValue, outToken, routeValues, updateInToken, updateOutToken } from '$lib/values';
-  import { formatError } from '$lib/utils';
+  import { formatAddress, formatError } from '$lib/utils';
   import { deleteBridgeTask, onEthAddressFound } from '$lib';
   import { toastTransaction } from '$lib/toasts';
   import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
@@ -81,6 +81,7 @@
     chainIdsToAddresses[sourceAssetChainID] = $userAddress;
     chainIdsToAddresses[NEUTRON_ID] = NEUTRON_REGISTRY;  
 
+
     $skipClient.msgsDirect({
       ...SKIP_COMMON,
       destAssetChainID: NEUTRON_ID,
@@ -102,6 +103,10 @@
         throw new Error('Only atomic bridging txs are supported');
       }
       const vals = await setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID, undefined, feeCoin)
+      if (vals.outValue < 5) {
+        throw new Error('Must recieve at least 5 NTRN to cover future fees');
+      }
+      
       await simulateCreation(vals);
       return vals;
     })
@@ -276,7 +281,7 @@
 
 <GhostBox styles="w-full md:w-2/3 lg:w-1/2 px-5 overflow-auto max-h-screen pt-3">
 
-  <ElevatedBox><h3 class="h3 font-bold my-2">Create an Account ( +Deposit )</h3></ElevatedBox>
+  <ElevatedBox><h3 class="h3 font-bold my-2">Create an Account (+Deposit)</h3></ElevatedBox>
 
   { #if $inToken && $routeValues  }
       
@@ -293,9 +298,9 @@
             <div class="absolute top-1 sm:top-2 left-2 text-xs ">Controlling with</div>
     
             <div id="to"
-              class="pt-5 pb-2 px-2 sm:px-3 md:px-7 sm:pt-7 sm:pb-3 text-xs sm:text-md  "
+              class="pt-5 pb-2 px-2 sm:px-3 md:px-7 sm:pt-7 sm:pb-3 text-sm sm:text-md  "
             >
-              {controlAddress}
+              {formatAddress(controlAddress, 10)}
             </div>
 
             {#if $walletIcon}
