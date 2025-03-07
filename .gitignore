@@ -33,8 +33,7 @@ packages/*/.cargo
 
 # code coverage
 tarpaulin-report.*
-
-static/bg2.jpg
+    
 
 temp
 node_modules

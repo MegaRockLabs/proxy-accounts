@@ -41,6 +41,7 @@ export const deleteBridgeTask = (txId: string) => {
     bridgeTasks.update((tasks) => tasks.filter((t) => t.txHash !== txId));
 }
 
+
 export const updateBridgeTask = (txId: string, task: Partial<BridgeTask>) => {
     bridgeTasks.update((tasks) => {
         const found = tasks.find((t) => t.txHash === txId);
