@@ -123,8 +123,8 @@ pub fn encode_feegrant_msg(
     let mut basic_msg = Anybuf::new()
         .append_repeated_message(1, &spend_limit);
     
-    if expiration.is_some() {
-        basic_msg = basic_msg.append_message(2, &expiration.unwrap());
+    if let Some(expiration) = expiration {
+        basic_msg = basic_msg.append_message(2, &expiration);
     }
 
     let basic  = Anybuf::new()
