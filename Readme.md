@@ -1,8 +1,8 @@
 # Proxy Accounts
 
-Proxy Accounts are smart contract based accounts or embed wallets used as an entry point to the blockchain and its applications. Accounts are controlled can be controlled by custom authentication methods, such as multi-chain cosmos public key, ethereum personal sign messages, passkeys (webauthn) and more. 
+Proxy Accounts are minimal (smart contract) accounts or "embed wallets" that can be used as an entry point to a blockchain and its ecosystem. Accounts can be controlled by custom authentication methods, such as (multi-chain) cosmos public key, ethereum personal sign messages, passkeys (webauthn) signarures and more. 
 
-See [smart-account-auth](https://github.com/MegaRockLabs/smart-account-auth) library for more details.
+See [smart-account-auth](https://github.com/MegaRockLabs/smart-account-auth) library for more information about credentials / authenticators
 
 
 ## Architecture
