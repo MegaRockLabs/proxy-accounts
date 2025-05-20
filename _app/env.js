@@ -1,0 +1,1 @@
+export const env={"PUBLIC_WALLETCONNECT_ID":"dba89199fac75bec08a3291232775e3d","PUBLIC_RELAYING_MNEMONIC":"cloud rack false great soul kite amount agree spell twin chuckle advice weapon bitter arrest canyon ordinary original venture shock universe naive include mountain"}
