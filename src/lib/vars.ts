@@ -13,10 +13,10 @@ export const metadata : Metadata = {
 
 
 export const chainIdsToAddresses : Record<string, string> = {
-    "noble-1": "noble16z43tjws3vw06ej9v7nrszu0ldsmn0eywvs50c",
-    "neutron-1": "neutron16z43tjws3vw06ej9v7nrszu0ldsmn0eyzsv7d3",
-    "osmosis-1": "osmo16z43tjws3vw06ej9v7nrszu0ldsmn0eyw5kvpy",
-    "cosmoshub-4": "cosmos16z43tjws3vw06ej9v7nrszu0ldsmn0eyx09uhk",
+    "noble-1": "noble129gww8t0dhjyx8k3puld5xmm0hz05uh8nce9z7",
+    "neutron-1": "neutron129gww8t0dhjyx8k3puld5xmm0hz05uh8ly90qh",
+    "osmosis-1": "osmo129gww8t0dhjyx8k3puld5xmm0hz05uh8nqlavz",
+    "cosmoshub-4": "cosmos129gww8t0dhjyx8k3puld5xmm0hz05uh8mmvd6s",
 };
 
 
@@ -62,10 +62,15 @@ export const NEUTRON_IBC_ATOM = "ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE
 /* 
 neutron1wd2tsamztw8gthn96ldthc628k0a3p08vmsj2c2j05pn3ntp7ets06ugj8
 
+last
+neutron1cvsrhtdk0tfhzpepjqt4nj6scxzg4zq87kl5xxed9a4clmj7zyaqru9kuy
+
+cosmos evco last
+neutron16zkl4kytc6x54uaye9p4r674zczdc6rprqdd4054ld5l5frafhks3cutc3
 */
 
 
-export const NEUTRON_REGISTRY = "neutron1cvsrhtdk0tfhzpepjqt4nj6scxzg4zq87kl5xxed9a4clmj7zyaqru9kuy"
+export const NEUTRON_REGISTRY = "neutron1wa367lrw89mem75x6hltv20p4vwgpd8zpqfktffcwm6wuzqamsksaqn5t5"
 export const NEUTRON_ACCOUNT_ID = 3113
 
 

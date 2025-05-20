@@ -6,6 +6,7 @@ import {
     setupIbcExtension, 
     setupFeegrantExtension 
 } from "@cosmjs/stargate";
+
 import { SigningCosmWasmClient, setupWasmExtension } from "@cosmjs/cosmwasm-stargate";
 import { Comet38Client } from "@cosmjs/tendermint-rpc";
 import { Secp256k1HdWallet } from "@cosmjs/amino";
@@ -16,9 +17,15 @@ import { PUBLIC_RELAYING_MNEMONIC } from "$env/static/public";
 import { SkipClient } from "@skip-go/client";
 
 
+import { 
+    getCosmosSigner, getEVMSigner, getSVMSigner, 
+    relayingAddress, relayingSigner, wagmiAdapter, 
+    wagmiValue 
+} from "./signers";
+
 import { gasPrice, prefix } from "$lib/chains";
 import type { CosmosClient } from "./types";
-import { getCosmosSigner, getEVMSigner, getSVMSigner, relayingAddress, relayingSigner, wagmiAdapter, wagmiValue } from "./signers";
+
 import { Connection } from "@solana/web3.js";
 import { BASE_ID, NEUTRON_ID, NEUTRON_RPC, SOLANA_RPC } from "./vars";
 import type { Client } from "viem";
@@ -82,6 +89,7 @@ export const initRelayingClient = async () : Promise<SigningCosmWasmClient> => {
     relayingSigner.set(signer);
 
     const allAcoounts = await signer.getAccounts()
+    console.log("Relaying accounts", allAcoounts);
     const account = allAcoounts[0];
     relayingAddress.set(account.address);
 

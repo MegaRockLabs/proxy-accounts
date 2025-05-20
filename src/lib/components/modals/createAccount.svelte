@@ -198,6 +198,8 @@
 
     if (!direct || direct.txs.length != 1) return;
 
+    console.log('Creating account with values:', values);
+
     let { txHash, promise } = await executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient, true);
     const expLink = BASESCAN + txHash;
     const action = viewTxAction(txHash, expLink);
@@ -245,21 +247,26 @@
     error = '';
     loading = true;
 
-    if (!createMsg) {
-      try {
+    console.log('onClick', $inToken, $outToken, $inValue, $routeValues);
+
+    try {
+      if (!createMsg) {
           await signCreateMsg();
-      } catch (e) {
-        formatError(e);
-      } finally {
-        loading = false;
+      } else if (!$directRes) {
+        await calculateRoute();
+      } else {
+        console.log('Creating account');
+        await create();
       }
+
+    } catch (e) {
+      console.error('Error creating account', e);
+      formatError(e);
+
     } 
 
-    else if (!$directRes) {
-      await calculateRoute();
-    } else {
-      await create();
-    }
+    loading = false;
+    
   }
 
 

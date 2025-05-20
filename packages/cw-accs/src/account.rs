@@ -8,7 +8,6 @@ use schemars::JsonSchema;
 use crate::{msg::NeutronMsg, CosmosMsg};
 
 
-
 #[cw_serde]
 pub struct MigrateAccountMsg<T = Empty> {
     pub params: Box<Option<T>>,

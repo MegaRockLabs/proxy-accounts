@@ -5,7 +5,6 @@
 	import Header from '$lib/components/header/header.svelte';
 	import { AppShell, getToastStore, Modal } from '@skeletonlabs/skeleton';
 	import { bridgeTasks, onMountLogic } from '$lib';
-	import { page } from '$app/stores';
 
 	import { storePopup } from '@skeletonlabs/skeleton';
 	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';

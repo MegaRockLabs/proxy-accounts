@@ -652,7 +652,11 @@ export const executeRoute = (
             onTransactionTracked: async ({ txHash, explorerLink }) => {
                 console.log(`Transaction tracked with tx hash: ${txHash}`);
                 updateBridgeTask(txHash, { explorerLink });
-            },
+            }
+            
+        }).catch((error) => {
+            console.error('Error executing route:', error);
+            // Handle error
         }); 
     });
 
