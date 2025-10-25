@@ -1,7 +1,7 @@
 import { GasPrice } from "@cosmjs/stargate";
 import type { Chain, CosmosChain, EthChain } from "./types"
 import { type Eip1193Provider } from "ethers";
-import { BASE_ID, BASE_ID_HEX, BASE_RPC, LOGO_ETH, LOGO_NTRN, LOGO_SOL, NEUTRON_ID, NEUTRON_DENOM, NEUTRON_RPC, SOLANA_ID, SOLANA_RPC } from "$lib/vars";
+import { BASE_ID, BASE_ID_HEX, BASE_RPC, LOGO_ETH, LOGO_NTRN, LOGO_SOL, NEUTRON_ID, NEUTRON_DENOM, NEUTRON_RPC, SOLANA_ID, SOLANA_RPC, ARBITRUM_ID, ARBITRUM_ID_HEX, ARBITRUM_RPC } from "$lib/vars";
 import { writable } from "svelte/store";
 
 
@@ -15,6 +15,17 @@ export const Base : EthChain = {
     decimals       :   18,
     logo           :   "https://raw.githubusercontent.com/base-org/brand-kit/refs/heads/main/logo/symbol/Base_Symbol_Blue.svg",
     explorer       :   "https://basescan.org",
+}
+
+export const Arbitrum : EthChain = {
+    name           :   "Arbitrum",
+    denom          :   "ETH",
+    url            :   ARBITRUM_RPC,
+    id             :   ARBITRUM_ID,
+    idHex          :   ARBITRUM_ID_HEX,
+    decimals       :   18,
+    logo           :   "https://cryptologos.cc/logos/arbitrum-arb-logo.svg",
+    explorer       :   "https://arbiscan.io",
 }
 
 
@@ -54,6 +65,7 @@ export const Solana : Chain = {
 
 
 export const BASE_CAIP = `eip155:${BASE_ID}`;
+export const ARBITRUM_CAIP = `eip155:${ARBITRUM_ID}`;
 export const SOLANA_CAIP = `solana:${SOLANA_ID}`;
 
 
@@ -116,14 +128,14 @@ export const Noble : CosmosChain = {
 export const getEthChain = (id : string) : EthChain => {
     if (id === BASE_ID) {
         return Base;
+    } else if (id === ARBITRUM_ID) {
+        return Arbitrum;
     } else if (id === Polygon.id) {
         return Polygon
     } else {
         throw new Error("Chain not found");
     }
 }
-
-
 
 
 

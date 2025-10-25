@@ -14,7 +14,7 @@ import { get, writable } from "svelte/store";
 
 
 import { PUBLIC_RELAYING_MNEMONIC } from "$env/static/public";
-import { SkipClient } from "@skip-go/client";
+import { setClientOptions, setApiOptions } from "@skip-go/client";
 
 
 import { 
@@ -32,7 +32,7 @@ import type { Client } from "viem";
 
 
 export const relayingClient = writable<SigningCosmWasmClient>();
-export const skipClient = writable<SkipClient>();
+export const skipClient = writable<any>();
 
 export const cosmosClient = writable<CosmosClient>();
 export const solanaClient = writable<Connection>();
@@ -102,11 +102,8 @@ export const initRelayingClient = async () : Promise<SigningCosmWasmClient> => {
 
 
 
-export const initSkipClient = async () : Promise<SkipClient> => {
-    const client = new SkipClient({
-        getCosmosSigner,
-        getEVMSigner,
-        getSVMSigner,
+export const initSkipClient = async ()  => {
+    setClientOptions({
         endpointOptions: {
             endpoints: {
                 [NEUTRON_ID]: {
@@ -119,6 +116,16 @@ export const initSkipClient = async () : Promise<SkipClient> => {
             }
         }
     });
+    setApiOptions({
+
+    });
+    /* const client = new SkipClient({
+        getCosmosSigner,
+        getEVMSigner,
+        getSVMSigner,
+        
+    }); */
+    const client : any = {};
     skipClient.set(client);
     return client;
 }

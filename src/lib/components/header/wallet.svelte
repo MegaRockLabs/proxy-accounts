@@ -8,19 +8,32 @@
     import { cosmosClient } from "$lib/clients";
     import { onEthAddressFound, onSolAddressFound } from "$lib";
     import { userAddress, foundAccountInfo } from "$lib/accounts";
-    import { LOGO_METAMASK } from "$lib/vars";
 
+    let prevWalletName = $state<string | undefined>(undefined);
+    let prevWalletIcon = $state<string | undefined>(undefined);
+    let prevUserAddress = $state<string | undefined>(undefined);
 
     const updateIcon = (name: string, icon : string) => {
         if (!icon) {
             if (name) {
                 // TODO: add more wallet icons
-                walletIcon.set(LOGO_METAMASK);
             }
         }
     }
 
-    $: if ($walletName) updateIcon($walletName, $walletIcon);
+    $effect(() => {
+        console.log('Appkit:', appKit);
+
+        const name = $walletName;
+        const icon = $walletIcon;
+        console.log('Wallet changed:', { name, icon });
+        
+        if (name && (name !== prevWalletName || icon !== prevWalletIcon)) {
+            prevWalletName = name;
+            prevWalletIcon = icon;
+            updateIcon(name, icon);
+        }
+    });
 
 
     const onClick = () => {
@@ -46,14 +59,21 @@
         }
     }
 
-    $: if ($userAddress) onAddress($userAddress);
+    $effect(() => {
+        const address = $userAddress;
+        
+        if (address && address !== prevUserAddress) {
+            prevUserAddress = address;
+            onAddress(address);
+        }
+    });
 
 </script>
 
 <Box>
     <div class="flex justify-center items-center min-h-8 gap-3 px-1 min-w-24">
-        { #if $userAddress }
-            <button class="flex flex-col text-sm" on:click={onConnectedClick}>
+        {#if $userAddress}
+            <button class="flex flex-col text-sm" onclick={onConnectedClick}>
                 <div class="flex-center gap-3 text-center px-1">
                     {#if $walletIcon}
                         <img src={$walletIcon} alt="wallet icon" class="w-4 h-4" />
@@ -65,7 +85,7 @@
         {:else }
             <button 
                 class="flex text-sm font-bold text-center" 
-                on:click={onClick}> Connect
+                onclick={onClick}> Connect
             </button>
             
         {/if}

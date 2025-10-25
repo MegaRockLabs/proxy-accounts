@@ -300,7 +300,7 @@ export type RouteValues = {
 
 
     userAddresses: { 
-        chainID: string, 
+        chainId: string, 
         address: string 
     }[];
 }

@@ -1,6 +1,10 @@
 <script lang="ts">
-    export let size : 1 | 2 | 3 | 4 | 5 = 1;
-    export let styles: string = "";
+    interface Props {
+        size?: 1 | 2 | 3 | 4 | 5;
+        styles?: string;
+    }
+
+    let { size = 1, styles = "" }: Props = $props();
 
     let classes = styles.length > 0 ? styles : `my-${size}`;
 </script>

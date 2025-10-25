@@ -1,7 +1,12 @@
 <script lang="ts">
-    export let styles = "";
+    interface Props {
+        styles?: string;
+        children?: import('svelte').Snippet;
+    }
+
+    let { styles = "", children }: Props = $props();
 </script>
 
-<div class="rounded-container-token p-3 bg-glass-dark bg-glass-shadow {styles}">
-    <slot />
+<div class="rounded-container p-3 bg-glass-dark bg-glass-shadow {styles}">
+    {@render children?.()}
 </div>

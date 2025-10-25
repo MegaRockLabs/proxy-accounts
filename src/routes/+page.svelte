@@ -1,49 +1,46 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
 	import Container from '$lib/components/common/container.svelte';
   import Separator from '$lib/components/common/separator.svelte';
   import ElevatedBox from '$lib/components/common/elevatedBox.svelte';
   import DashHeader from '$lib/components/common/dashHeader.svelte';
   import ElevatedButtonBox from '$lib/components/common/elevatedButtonBox.svelte';
-
-  import { getModalStore } from '@skeletonlabs/skeleton';
   import { foundAccountInfo, userAddress } from '$lib//accounts';
   import { accountBalances } from '$lib//assets';
   import { appKit } from '$lib/appkit';
+  import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
+  import CreateAccount from '$lib/components/modals/createAccount.svelte';
+  import Deposit from '$lib/components/modals/deposit.svelte';
+  import Withdraw from '$lib/components/modals/withdraw.svelte';
 
-  const modalStore = getModalStore();
+  // Dialog state management
+  let showCreateAccount = $state(false);
+  let showDeposit = $state(false);
+  let showWithdraw = $state(false);
 
-  $: hasAccount = Boolean($foundAccountInfo);
+  let hasAccount = $derived(Boolean($foundAccountInfo));
 
   const createClick = () => {
-    modalStore.trigger({
-        type: 'component',
-        component: "createAccount",
-        backdropClasses: "backdrop-blur-xl",
-    });
+    showCreateAccount = true;
   }
 
   const deposit = () => {
-    modalStore.trigger({
-      type: 'component',
-      component: "deposit",
-      backdropClasses: "backdrop-blur-xl",
-    });
+    showDeposit = true;
   }
 
   const withdraw = () => {
-    modalStore.trigger({
-      type: 'component',
-      component: "withdraw",
-      backdropClasses: "backdrop-blur-xl",
-    });
+    showWithdraw = true;
   }
 
   const connect = () => {
       appKit.open();
   }
 
-  $: disabled = !$userAddress
-  $: console.log("userAddress", $userAddress, !!$userAddress)
+  let disabled = $derived(!$userAddress)
+  run(() => {
+    console.log("userAddress", $userAddress, !!$userAddress)
+  });
 
 </script>
 
@@ -52,7 +49,7 @@
 
     
   
-  { #if hasAccount  }
+  {#if hasAccount}
 
     <DashHeader />
 
@@ -100,7 +97,7 @@
 
     <div class="flex w-full justify-center">
 
-      { #if $userAddress }
+      {#if $userAddress}
 
         <ElevatedButtonBox styles="col-span-2" small={false} onClick={createClick} {disabled}>
             Create New
@@ -123,3 +120,39 @@
 
 
 </Container>
+
+<!-- Create Account Dialog -->
+<Dialog open={showCreateAccount} onOpenChange={(e) => showCreateAccount = e.open}>
+  <Portal>
+    <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
+    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
+      <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
+        <CreateAccount />
+      </Dialog.Content>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog>
+
+<!-- Deposit Dialog -->
+<Dialog open={showDeposit} onOpenChange={(e) => showDeposit = e.open}>
+  <Portal>
+    <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
+    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
+      <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
+        <Deposit />
+      </Dialog.Content>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog>
+
+<!-- Withdraw Dialog -->
+<Dialog open={showWithdraw} onOpenChange={(e) => showWithdraw = e.open}>
+  <Portal>
+    <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
+    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
+      <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
+        <Withdraw />
+      </Dialog.Content>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog>

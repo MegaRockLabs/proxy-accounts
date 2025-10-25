@@ -1,7 +1,6 @@
-import { base, type AppKitNetwork } from '@reown/appkit/networks';
+import { arbitrum, base, type AppKitNetwork } from '@reown/appkit/networks';
 import type { Metadata } from "@reown/appkit";
 import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
-import type { ExperimentalFeature } from '@skip-go/client';
 
 
 export const metadata : Metadata = {
@@ -21,7 +20,7 @@ export const chainIdsToAddresses : Record<string, string> = {
 
 
 export const SKIP_COMMON   = {
-    experimentalFeatures: ["cctp", "hyperlane", "stargate"] as ExperimentalFeature[],
+    experimentalFeatures: ["cctp", "hyperlane", "stargate"] as string[],
     smartRelay: true,
     allowUnsafe: true,
     smartSwapOptions: {
@@ -33,12 +32,11 @@ export const SKIP_COMMON   = {
     goFast: true,
 }
 
-export const networks : [AppKitNetwork, ...AppKitNetwork[]] = [base, /* solana */]
+export const networks : [AppKitNetwork, ...AppKitNetwork[]] = [base, arbitrum /* solana */]
 
 export const projectId = PUBLIC_WALLETCONNECT_ID
 
 
-export const LOGO_METAMASK = "https://raw.githubusercontent.com/MetaMask/brand-resources/refs/heads/master/SVG/SVG_MetaMask_Icon_Color.svg";
 export const LOGO_ETH = "https://raw.githubusercontent.com/axelarnetwork/axelar-configs/main/images/tokens/weth.svg";
 export const LOGO_USDC = "https://raw.githubusercontent.com/axelarnetwork/axelar-configs/main/images/tokens/usdc.svg";
 export const LOGO_ATOM = "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/refs/heads/main/images/cosmoshub/uatom.png";
@@ -49,6 +47,11 @@ export const LOGO_SOL = "https://raw.githubusercontent.com/cosmos/chain-registry
 export const BASE_ID = "8453"
 export const BASE_ID_HEX = "0x2105"
 export const BASE_RPC = "https://mainnet.base.org"
+
+export const ARBITRUM_ID = "42161"
+export const ARBITRUM_ID_HEX = "0xa4b1"
+export const ARBITRUM_RPC = "https://arb1.arbitrum.io/rpc"
+
 
 export const SOLANA_ID = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
 export const SOLANA_RPC = "https://solana-rpc.publicnode.com"

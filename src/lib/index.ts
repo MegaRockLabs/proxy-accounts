@@ -7,12 +7,12 @@ import { toBase64, toUtf8 } from "@cosmjs/encoding";
 import { updateRegistryParams } from "./registry";
 import type { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { getEthBalance, getSolBalance, updateAccountBalances } from "./assets";
-import { localStorageStore } from "@skeletonlabs/skeleton";
 import { type TxStatusResponse } from "@skip-go/client";
 import { get } from "svelte/store";
 import { relayingAddress, wagmiAdapter } from "./signers";
 import { BASE_ID } from "./vars";
 import { updateFeeGrants } from "./cosmos";
+import { localStorageStore } from "./storage";
 
 
 
@@ -27,7 +27,7 @@ export type BridgeTask = {
     outAddress?: string;
     outChainId: string;
 
-    chainID: string;
+    chainId: string;
     txHash: string;
 
     txStatus?: TxStatusResponse;

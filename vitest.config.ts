@@ -1,20 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig({
-  root: '.',
-  esbuild: {
-    tsconfigRaw: '{}',
-  },
-  test: {
-    clearMocks: true,
-    globals: true,
-    setupFiles: ['dotenv/config']
-  },
-  resolve: {
-    alias: [{ 
-      find: '~', 
-      replacement: resolve(__dirname, 'tests'),
-    }],
-  },
-});
+export default defineConfig({ plugins: [tailwindcss(), sveltekit()] });

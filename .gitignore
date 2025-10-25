@@ -34,8 +34,9 @@ packages/*/.cargo
 # code coverage
 tarpaulin-report.*
     
-
+docs
 temp
 node_modules
 build
 .svelte-kit
+*.sh

@@ -1,25 +1,48 @@
 <script lang="ts">
-  import { ListBox, ListBoxItem } from "@skeletonlabs/skeleton";
-  import { inToken, routeValues, updateInToken } from "$lib/values";
-  import type { Token } from "$lib/types";
-  export let tokens : Token[] = [];
+    import { Listbox, useListCollection, type ListboxRootProps } from '@skeletonlabs/skeleton-svelte';
+    import { inToken, routeValues, updateInToken } from "$lib/values";
+    import type { Token } from "$lib/types";
+    
+    interface Props {
+        tokens?: Token[];
+    }
+    
+    let { tokens = [] }: Props = $props();
+
+    const collection = $derived(
+        useListCollection({
+            items: tokens,
+            itemToString: (item) => item.fullName,
+            itemToValue: (item) => item.denom,
+        }),
+    );
+
+    const onValueChange: ListboxRootProps['onValueChange'] = (details) => {
+        if (details.value && details.value.length > 0) {
+            const selectedDenom = details.value[0];
+            const selectedToken = tokens.find(t => t.denom === selectedDenom);
+            if (selectedToken) {
+                updateInToken($routeValues, selectedToken, false);
+            }
+        }
+    };
 </script>
 
 
 <div data-popup="inTokens" class="shadow-xl z-50 bg-zinc-900/90">
-  <ListBox rounded="rounded-none" active="bg-primary-active-token" padding="p-1 sm:p-2">
-    { #each tokens as token (token.denom)}
-      <ListBoxItem 
-        bind:group={$inToken} name="intoken" 
-        value={token} on:change={() => updateInToken($routeValues, token, false)}
-      >
-        <div class="flex gap-1 sm:gap-5 justify-between items-center ">
-          <img src="{token.meta.logo}" alt="{token.name} logo" class="w-5 h-5" />
-          <div class="flex w-full justify-center">
-            {token.fullName}
+  <Listbox class="rounded-none preset-filled-primary-500 p-1 sm:p-2" {collection} {onValueChange}>
+    <Listbox.Content>
+      {#each collection.items as token (token.denom)}
+        <Listbox.Item item={token}>
+          <div class="flex gap-1 sm:gap-5 justify-between items-center ">
+            <img src="{token.meta.logo}" alt="{token.name} logo" class="w-5 h-5" />
+            <div class="flex w-full justify-center">
+              {token.fullName}
+            </div>
           </div>
-        </div>
-      </ListBoxItem>
-    { /each }
-  </ListBox>
+          <Listbox.ItemIndicator />
+        </Listbox.Item>
+      {/each }
+    </Listbox.Content>
+  </Listbox>
 </div>  

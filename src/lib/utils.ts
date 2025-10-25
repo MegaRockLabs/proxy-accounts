@@ -1,17 +1,28 @@
 import { formatUnits, parseUnits } from "viem";
-import { ibcTracesValue } from "./cosmos";
 import { NEUTRON_IBC_ATOM, NEUTRON_DENOM, NEUTRON_ID, NEUTRON_REGISTRY } from "./vars";
 import { CosmosHub, Noble, Osmosis } from "./chains";
 import { userAddress } from "./accounts";
 import { get } from "svelte/store";
 import type { Token } from "./types";
-
+import { ibcTracesValue } from "./cosmos";
 
 let timer: NodeJS.Timer;
+
+
 export const debounce = (func: () => void, waitFor: number = 500) => {
     clearTimeout(timer);
     timer = setTimeout(func, waitFor);
 }
+
+export const debounced = (func: Function, timeout = 800) => {
+	let timer: NodeJS.Timer;
+	return (...args: any[]) => {
+		clearTimeout(timer);
+		timer = setTimeout(() => {
+			func(...args);
+		}, timeout);
+	};
+};
 
 
 export const formatSeconds = (second : number) => {
@@ -83,6 +94,7 @@ export const denomToHuman = (denom: string) : string => {
             } else {
                 return "ibc/" + formatAddress(hash)
             }
+           return denom
         } else {
             return denom.slice(1).toUpperCase()
         }
@@ -193,3 +205,8 @@ export const formatError = (error: any) => {
 
     return text;
 }
+
+
+
+
+

@@ -6,9 +6,10 @@
   import OutTokens from '../common/outTokens.svelte';
 
   import { selectedChain } from '$lib/chains';
-  import { getModalStore, getToastStore, ProgressRadial } from "@skeletonlabs/skeleton";
+  import { Progress } from "@skeletonlabs/skeleton-svelte";
   
-  import type { Chain, CosmosToken, Token } from '$lib/types';
+  import type { Chain, CosmosToken, Token, RouteValues } from '$lib/types';
+  import type { MsgsDirectResponse } from '@skip-go/client';
   
   import { BASESCAN, chainIdsToAddresses, NEUTRON_ID, SKIP_COMMON } from '$lib/vars';
   import { getInTokens, getOutTokens } from '$lib/tokens';
@@ -16,7 +17,7 @@
   import { foundAccountInfo } from '$lib/accounts';
   import { cosmosClient, skipClient } from '$lib/clients';
   import { userAddress } from '$lib/accounts';
-  import { directRes, executeRoute, setDirectResponse, viewTxAction } from '$lib/routes';
+  import { directRes, executeRouteOwn, setDirectResponse, viewTxAction } from '$lib/routes';
   
   import InTokenInput from '../common/inTokenInput.svelte';
   import OutTokenButton from '../common/outTokenButton.svelte';
@@ -27,21 +28,29 @@
   import { toastTransaction } from '$lib/toasts';
   import { deleteBridgeTask } from '$lib';
   import { updateAccountBalances } from '$lib/assets';
+  import { createToaster } from '@skeletonlabs/skeleton-svelte';
 
-  export let parent: any = {} 
+  interface Props {
+    parent?: any;
+    onClose?: () => void;
+  }
+
+  let { parent = {}, onClose }: Props = $props();
   if (parent) {}
 
-	const modalStore = getModalStore();
-  const toastStore = getToastStore();
+  const toaster = createToaster({
+    placement: 'top-end',
+  });
 
 
-  let loading = false;
+  let loading = $state(false);
   
   let inChain : Chain;
-  let inTokens : Token[] = [];
-  let outTokens : CosmosToken[] = [];
+  let inTokens : Token[] = $state([]);
+  let outTokens : CosmosToken[] = $state([]);
+  let lastUpdatedTokenDenom = $state('');
   
-  let error: string = '';
+  let error: string = $state('');
 
 
 
@@ -49,9 +58,33 @@
     inChain = chain;
     inTokens = getInTokens(inChain);
     outTokens = getOutTokens(inChain);
-    updateInToken($routeValues ?? {}, inTokens[0])
+    
+    const firstToken = inTokens[0];
+    if (!firstToken) {
+      console.warn('No input tokens available');
+      return;
+    }
+    
+    // Prevent updating with the same token repeatedly
+    if (firstToken.denom === lastUpdatedTokenDenom) {
+      console.log('Token already updated, skipping');
+      return;
+    }
+    
+    const values = $routeValues;
+    if (!values) {
+      console.warn('No route values available');
+      return;
+    }
+    
+    lastUpdatedTokenDenom = firstToken.denom;
+    updateInToken(values, firstToken)
     .then(val => {
       if (outTokens.length) updateOutToken(val, outTokens[0]);
+    })
+    .catch(err => {
+      console.error('Error updating token:', err);
+      lastUpdatedTokenDenom = ''; // Reset on error to allow retry
     });
   }
 
@@ -75,12 +108,12 @@
       chainIdsToAddresses,
       sourceAssetChainID,
     })
-    .then(dirRes => setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID))
-    .then(vals => {
+    .then((dirRes: MsgsDirectResponse) => setDirectResponse(values, dirRes, $userAddress, sourceAssetChainID))
+    .then((vals: RouteValues) => {
       console.log('Direct messages calculated:', vals)
       error = '';
     })
-    .catch(e => {
+    .catch((e: Error) => {
       console.error('Error calculating direct messages', e)
       error = formatError(e);
       directRes.set(null)
@@ -94,11 +127,11 @@
     const values = $routeValues;
     const direct = $directRes;
     const account = $foundAccountInfo;
-    if (!values || !direct || !account || direct.txs.length != 1) return;
+    if (!values || !direct || !account || !direct.txs || direct.txs.length != 1 || !direct.route) return;
 
     loading = true;
 
-    const exec = await executeRoute($skipClient, direct.txs, direct.route, values, $cosmosClient);
+    const exec = await executeRouteOwn(direct.txs, direct.route, values, $cosmosClient);
     console.log('Executing route:', exec);
 
     let promise = exec.promise;
@@ -107,15 +140,15 @@
     const action = viewTxAction(txHash, expLink);
 
     if (values.routeSecs > 50) {
-      toastStore.trigger({
-        message: "Deposit Broadcasted",
-        autohide: false,
-        action: viewTxAction(txHash, expLink, false)
+      toaster.info({
+        title: "Deposit Broadcasted",
+        description: txHash,
+        // action: viewTxAction(txHash, expLink, false)
       });
       promise = new Promise((resolve) => resolve(null));
     } else {
       toastTransaction(
-        toastStore, 
+        toaster, 
         "Depositing",  
         "Success", 
         promise,
@@ -126,14 +159,14 @@
       );
     } 
     
-    promise.then(depres => {
+    promise.then((depres) => {
       console.log('Deposited res:', depres);
       error = '';
       deleteBridgeTask(txHash);
-      modalStore.clear();
+      if (onClose) onClose();
       updateAccountBalances($cosmosClient, account.address);
     })
-    .catch(e => {
+    .catch((e) => {
       console.error('Error depositing route', e);
       error = formatError(e);
     })
@@ -159,14 +192,50 @@
 
 
   const clickCancel = () => {
-		modalStore.clear();
+		if (onClose) onClose();
 	};
 
   onMount(() => directRes.set(null))
 
-  // reset all available tokens on chain change
-  $: if ($selectedChain) updateChain($selectedChain)
-  $: if ($inToken || $outToken || $inValue || error)  directRes.set(null);
+  // Track previous chain to prevent unnecessary updates
+  let prevChainId = $state('');
+  let isUpdatingChain = $state(false);
+  
+  $effect(() => {
+    const chain = $selectedChain;
+    if (chain && chain.id !== prevChainId && !isUpdatingChain) {
+      prevChainId = chain.id;
+      isUpdatingChain = true;
+      updateChain(chain).finally(() => {
+        isUpdatingChain = false;
+      });
+    }
+  });
+  
+  // Track previous values to prevent unnecessary resets
+  let prevInTokenDenom = $state('');
+  let prevOutTokenDenom = $state('');
+  let prevInValue = $state(0);
+  let prevError = $state('');
+  
+  $effect(() => {
+    const inTokenDenom = $inToken?.denom || '';
+    const outTokenDenom = $outToken?.denom || '';
+    const inVal = $inValue || 0;
+    const err = error || '';
+    
+    if (inTokenDenom !== prevInTokenDenom || 
+        outTokenDenom !== prevOutTokenDenom || 
+        inVal !== prevInValue ||
+        err !== prevError) {
+      prevInTokenDenom = inTokenDenom;
+      prevOutTokenDenom = outTokenDenom;
+      prevInValue = inVal;
+      prevError = err;
+      
+      directRes.set(null);
+    }
+  });
 </script>
 
 
@@ -179,22 +248,22 @@
 
   <ElevatedBox><h3 class="h3 font-bold">Deposit</h3></ElevatedBox>
 
-  { #if $inToken && $routeValues  }
+  {#if $inToken && $routeValues}
       
-    { @const { outUSD, outToken, outValue } = $routeValues }
+    {@const { outUSD, outToken, outValue } = $routeValues}
     
     <div class="py-5 pb-3 md:px-3 flex flex-col justify-between gap-5">
 
-        <InTokenInput disabled={loading}/>
+        <InTokenInput disabled={loading} tokens={inTokens} />
 
-        { #if outToken && outTokens.length }
+        {#if outToken && outTokens.length}
 
           <div class="relative ">
             <label class="absolute top-1 left-2 label text-xs text-gray-200 " for="recieve">Recieve</label>
             <div class="flex w-full justify-between items-stretch gap-3 " >
               
               <div class="border-b border-grey-100 text-lg py-5 px-1 sm:px-7 w-full flex gap-3 relative  sm:py-7">
-                { #if outUSD && outUSD != "0.00" }
+                {#if outUSD && outUSD != "0.00"}
                   <span class="absolute bottom-1 left-3 sm:left-7 label text-xs text-gray-200 ">( ${outUSD} )</span>
                 { /if }
                 <span>
@@ -202,7 +271,7 @@
                 </span>
               </div>
 
-              <OutTokenButton disabled={loading} />
+              <OutTokenButton disabled={loading} tokens={outTokens} />
             </div>
           </div>
 
@@ -218,14 +287,14 @@
 
             <ElevatedButtonBox selected onClick={clickCancel} small={false}>Cancel</ElevatedButtonBox>
 
-            <ElevatedButtonBox styles="variant-filled-primary" 
+            <ElevatedButtonBox styles="preset-filled-primary-500" 
               onClick={onClick} 
               disabled={loading || !outTokens.length || !outToken } small={false}
             >
-              {#if $directRes }
+              {#if $directRes}
                 Deposit
-              { :else if loading }
-                <ProgressRadial value={undefined} width="w-6" />
+              {:else if loading}
+                <Progress value={undefined} class="w-6" />
               {:else}
                 Calculate
               {/if}

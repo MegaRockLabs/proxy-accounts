@@ -1,5 +1,5 @@
 import type { Chain, CosmosToken, Token, TokenMeta } from './types';
-import { BASE_ID, LOGO_ATOM, LOGO_ETH, LOGO_NTRN, LOGO_USDC, NEUTRON_ID, SOLANA_ID } from './vars';
+import { ARBITRUM_ID, BASE_ID, LOGO_ATOM, LOGO_ETH, LOGO_NTRN, LOGO_USDC, NEUTRON_ID, SOLANA_ID } from './vars';
 
 
 export const USDC_INPUT : TokenMeta = {
@@ -166,7 +166,6 @@ export const BASE_ETH : Token = {
 }
 
 
-
 export const BASE_WETH : Token = {
     originalChain: BASE_ID,
     decimals: 18,
@@ -198,6 +197,39 @@ export const BASE_AXL_USDC : Token = {
     meta: USDC_INPUT,
 }
 
+
+
+export const ARB_ETH : Token = {
+    originalChain: ARBITRUM_ID,
+    decimals: 18,
+    denom: "arbitrum-native",
+    name: "Eth",
+    symbol: "ETH",
+    fullName: "Arbitrum ETH",
+    meta: ETH_INPUT,
+}
+
+export const ARB_WETH : Token = {
+    originalChain: ARBITRUM_ID,
+    decimals: 18,
+    denom: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+    name: "wEth",
+    symbol: "WETH",
+    fullName: "Wrapped ETH",
+    meta: ETH_INPUT,
+}
+
+export const ARB_USDC : Token = {
+    originalChain: ARBITRUM_ID,
+    decimals: 6,
+    denom: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    name: "Usdc",
+    symbol: "USDC",
+    fullName: "Arbitrum USDC",
+    meta: USDC_INPUT,
+}
+
+
 export const SOLANA_NATIVE : Token = {
     originalChain: "solana",
     denom: "solana-native",
@@ -218,6 +250,8 @@ export const SOLANA_USDC : Token = {
     fullName: "Solana USDC",
     meta: USDC_INPUT,
 }
+
+
 
 
 
@@ -267,6 +301,12 @@ export const BaseTokenMap = {
     [BASE_AXL_USDC.denom]: BASE_AXL_USDC,
 }
 
+export const ArbitrumTokenMap = {
+    [ARB_ETH.denom]: ARB_ETH,
+    [ARB_WETH.denom]: ARB_WETH,
+    [ARB_USDC.denom]: ARB_USDC,
+}
+
 
 export const NeutronTokenMap = {
     [NTRN.denom]: NTRN,
@@ -281,6 +321,7 @@ export const NeutronTokenMap = {
 
 export const AllTokensMap = {
     ...BaseTokenMap,
+    ...ArbitrumTokenMap,
     ...NeutronTokenMap,
 }
 
@@ -288,6 +329,8 @@ export const AllTokensMap = {
 export const getInTokens = (chain: Chain) : Token[] => {
     if (chain.id === BASE_ID) {
         return [BASE_ETH, BASE_WETH, BASE_USDC];
+    } else if (chain.id === ARBITRUM_ID) {
+        return [ARB_ETH, ARB_WETH, ARB_USDC];
     } else if (chain.id === SOLANA_ID) {
         return [SOLANA_USDC];
     } else {

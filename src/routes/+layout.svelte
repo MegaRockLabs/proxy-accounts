@@ -1,26 +1,24 @@
 <script lang="ts">
-	import '../app.postcss';
+	import '../app.css';
 	import 'material-icons/iconfont/material-icons.css';
-	
 	import Header from '$lib/components/header/header.svelte';
-	import { AppShell, getToastStore, Modal } from '@skeletonlabs/skeleton';
 	import { bridgeTasks, onMountLogic } from '$lib';
-
-	import { storePopup } from '@skeletonlabs/skeleton';
-	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
-	import { initializeStores, Toast } from '@skeletonlabs/skeleton';
+	import { Toast, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	
     import { onMount } from 'svelte';
     import { modalRegistry } from '$lib/components/modals/registry';
   	import { skipClient } from '$lib/clients';
   	import { processBridgeTasks } from '$lib/routes';
-	  
-	initializeStores();
-	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
-	
-	const toastStore = getToastStore();
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
 
+	let { children }: Props = $props();
+	
+	const toaster = createToaster({
+		placement: 'top-end',
+	});
 	
 	onMount(() => {
 		onMountLogic()
@@ -29,7 +27,7 @@
 			console.log('bridgeTasks', $bridgeTasks);
 			const tasks = $bridgeTasks;
 			if (tasks) {
-				processBridgeTasks($skipClient, tasks, toastStore);
+				processBridgeTasks($skipClient, tasks, toaster);
 			};
 		});
 	});
@@ -48,25 +46,30 @@
 </svelte:head>
 
 
-<Modal zIndex='z-[999]' components={modalRegistry} />
-<Toast zIndex='z-[1000]' 
-	position='tr' 
-	background="bg-glass" 
-	buttonAction="btn variant-filled-primary"	
-	buttonDismiss="btn btn-sm variant-filled-primary"
-	spacing="flex gap-2 flex-col justify-center items-center"
-/>
+<!-- Toast Notifications -->
+<Toast.Group {toaster}>
+	{#snippet children(toast)}
+		<Toast {toast}>
+			<Toast.Message>
+				<Toast.Title>{toast.title}</Toast.Title>
+				<Toast.Description>{toast.description}</Toast.Description>
+			</Toast.Message>
+			<Toast.CloseTrigger />
+		</Toast>
+	{/snippet}
+</Toast.Group>
 
 
-<AppShell class="transition- ease-in-out duration-500  bg-no-repeat bg-cover bg-magic">
+<!-- Main Layout -->
+<div class="transition-ease-in-out duration-500 bg-no-repeat bg-cover bg-[url('/bg.jpg')] min-h-screen flex flex-col">
 	
-	<svelte:fragment slot="pageHeader">
-		<!-- App Bar -->
-		<Header />
-	</svelte:fragment>
+	<!-- Header -->
+	<Header />
+	
 	<!-- Page Route Content -->
+	<main class="flex-1">
+		{@render children?.()}
+	</main>
 
-	
-	<slot />
+</div>
 
-</AppShell>

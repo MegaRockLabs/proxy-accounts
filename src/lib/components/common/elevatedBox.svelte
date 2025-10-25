@@ -1,12 +1,22 @@
 <script lang="ts">
-    export let styles: string = '';
-    export let selected: boolean = false;
-    export let shadow: boolean = false;
+    interface Props {
+        styles?: string;
+        selected?: boolean;
+        shadow?: boolean;
+        children?: import('svelte').Snippet;
+    }
 
-    $: borderStyles = selected ? 'border-2' : '';
-    $: shadowStyles = shadow ? 'bg-glass-shadow' : '';
+    let {
+        styles = '',
+        selected = false,
+        shadow = false,
+        children
+    }: Props = $props();
+
+    let borderStyles = $derived(selected ? 'border-2' : '');
+    let shadowStyles = $derived(shadow ? 'bg-glass-shadow' : '');
 </script>
 
-<div  class="rounded-container-token bg-glass p-1 md:p-2 {borderStyles} {shadowStyles} {styles}">
-    <slot />
+<div  class="rounded-container bg-glass p-1 md:p-2 {borderStyles} {shadowStyles} {styles}">
+    {@render children?.()}
 </div>

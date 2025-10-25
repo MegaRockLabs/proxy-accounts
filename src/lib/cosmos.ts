@@ -2,12 +2,11 @@ import { writable } from "svelte/store";
 import type { Coin } from "@keplr-wallet/types";
 
 import { Grant, AllowedMsgAllowance, BasicAllowance  } from "cosmjs-types/cosmos/feegrant/v1beta1/feegrant";
-
-import { localStorageStore } from "@skeletonlabs/skeleton";
 import { toBase64 } from "@cosmjs/encoding";
 import type { CosmosClient, IbcTrace, ParsedGrant, StargateMsg } from "./types";
 import type { CosmosMsg } from "smart-account-auth";
 import { NEUTRON_IBC_ATOM, NEUTRON_DENOM } from "./vars";
+import { localStorageStore } from "./storage";
 
 
 
@@ -133,13 +132,13 @@ export const updateFeeGrants = async (
 
 // ibc
 export let ibcTracesValue : Record<string, IbcTrace> = {};
-export const ibcTraces   =   localStorageStore<Record<string, IbcTrace>>("ibcDenoms", ibcTracesValue);
+export const ibcTraces   =   localStorageStore("ibcDenoms", ibcTracesValue);
 
 export const updateIbcTrace = async (client: CosmosClient, ibcTrace: string) => {
     const trace = await client.ibc.transfer.denomTrace(ibcTrace)
     if (trace.denomTrace) {
         const hash = ibcTrace.slice(4)
-        ibcTraces.update((t) => {
+        ibcTraces.update((t : Record<string, IbcTrace>) => {
             t[hash] = {
                 denom: trace.denomTrace!.baseDenom,
                 path: trace.denomTrace!.path,

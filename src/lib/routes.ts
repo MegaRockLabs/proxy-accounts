@@ -1,7 +1,7 @@
-import type { EstimatedFee, StatusState, SwapVenue, TxStatusResponse } from "@skip-go/client";
+import { executeRoute, trackTransaction, waitForTransaction, type SwapVenue, type TxStatusResponse } from "@skip-go/client";
 import { Base, CosmosHub, gasPrice, Neutron, Noble, Osmosis } from "./chains";
 import { ALL_ETH, AllTokensMap, ATOM, AXL_USDC, BASE_ETH, BASE_USDC, BASE_WETH, NOBLE_USDC, NTRN, NTRN_INPUT, SOLANA_USDC, WST_ETH } from "./tokens"
-import type { CosmosTx, MsgsDirectResponse, MultiChainMsg, RouteResponse, SkipClient, Tx } from "@skip-go/client";
+import type { CosmosTx, MsgsDirectResponse, MultiChainMsg, RouteResponse, Tx } from "@skip-go/client";
 import type { FullCoin, AccountAction, CosmosClient, CosmosMsg, NeutronMsg, ParsedAccountInfo, RouteValues, ParsedGrant, Token } from "./types";
 import { camelizeObject, formatValue, idToChain } from "./utils";
 import { bridgeTasks, deleteBridgeTask, updateBridgeTask, type BridgeTask } from "$lib";
@@ -20,7 +20,9 @@ import { formatUnits, parseUnits } from "viem";
 import { routeValues } from "./values";
 import { getEthClient } from "./clients";
 import { estimateGas } from "viem/actions";
-import type { ToastStore } from "@skeletonlabs/skeleton";
+import { createToaster } from "@skeletonlabs/skeleton-svelte";
+
+type Toaster = ReturnType<typeof createToaster>;
 
 
 type RouteInfo = {
@@ -353,39 +355,39 @@ export const RouteMap : Record<string, Record<string, DestInfo>> = {
 
 
 export const BaseUniswapVenue : SwapVenue = {
-    chainID: BASE_ID,
+    chainId: BASE_ID,
     name: "base-uniswap",
     logoUri: "https://raw.githubusercontent.com/Uniswap/brand-assets/main/Uniswap%20Brand%20Assets/Uniswap_icon_pink.svg"
 };
 
 export const AstroportVenue  : SwapVenue = {
-    chainID: NEUTRON_ID,
+    chainId: NEUTRON_ID,
     name: "neutron-astroport",
     logoUri: "https://raw.githubusercontent.com/skip-mev/skip-go-registry/main/swap-venues/astroport/logo.png"
 };
 
 export const LidoSatelliteVenue : SwapVenue = {
-    chainID: NEUTRON_ID,
+    chainId: NEUTRON_ID,
     name: "neutron-lido-satellite",
     logoUri: "https://raw.githubusercontent.com/skip-mev/skip-go-registry/main/swap-venues/lido-satellite/logo.png"
 };
 
 
 export const DualityVenue : SwapVenue = {
-    chainID: NEUTRON_ID,
+    chainId: NEUTRON_ID,
     name: "neutron-duality",
     logoUri: "https://raw.githubusercontent.com/skip-mev/skip-go-registry/main/swap-venues/duality/logo.png"
 };
 
 
 export const NeutronDropVenue : SwapVenue = {
-    chainID: NEUTRON_ID,
+    chainId: NEUTRON_ID,
     name: "neutron-drop",
     logoUri: "https://raw.githubusercontent.com/skip-mev/skip-go-registry/main/swap-venues/drop/logo.png"
 };
 
 export const NeutronAstrovaultVenue : SwapVenue = {
-    chainID: NEUTRON_ID,
+    chainId: NEUTRON_ID,
     name: "neutron-astrovault",
     logoUri: "https://raw.githubusercontent.com/skip-mev/skip-go-registry/main/swap-venues/astrovault/logo.png"
 };
@@ -471,12 +473,12 @@ export const setRouteValues = async (
     values.routeSecs = newRoute.estimatedRouteDurationSeconds;
     values.outValue = newOut;
 
-    values.userAddresses = newRoute.requiredChainAddresses.map((chainID) => ({
-      chainID,
-      address: idToChain(chainID, true)
+    values.userAddresses = newRoute.requiredChainAddresses.map((chainId) => ({
+      chainId,
+      address: idToChain(chainId, true)
     }));
 
-    return await updateBridgeFee(values, newRoute.estimatedFees, creationFeeCoin);
+    return await updateBridgeFee(values, newRoute.estimatedFees!, creationFeeCoin);
 }
 
 
@@ -484,21 +486,21 @@ export const setDirectResponse = async (
     values   : RouteValues,
     direct   : MsgsDirectResponse, 
     address  : string,
-    chainID  : string = BASE_ID,
+    chainId  : string = BASE_ID,
     relayer? : SigningCosmWasmClient,
     creationFeeCoin? : FullCoin
 ) => {
     console.log('setting direct response', direct);
-    if (direct.txs.length != 1) {
+    if (direct.txs?.length != 1) {
         throw new Error('Direct response must have one tx');
     }
     directRes.set(direct);
     const tx = direct.txs[0];
     
-    values = await setRouteValues(values, direct.route, creationFeeCoin)
+    values = await setRouteValues(values, direct.route!, creationFeeCoin)
 
     try {
-        values = await updateGasFee(values, tx, address, chainID, relayer, creationFeeCoin)
+        values = await updateGasFee(values, tx, address, chainId, relayer, creationFeeCoin)
     }  catch (e) {
         console.error('Error updating gas fee:', e);
     }
@@ -510,15 +512,14 @@ export const setDirectResponse = async (
 export const executeRouteCosmwasm = async (
     signerClient: SigningCosmWasmClient,
     signerAddress: string,
-    skip: SkipClient,
     txs: Tx[],
     account: ParsedAccountInfo,
     grants: ParsedGrant[],
     values: RouteValues,
 ) => {
     const tx = (txs[0] as { cosmosTx: CosmosTx }).cosmosTx;
-    const msg = tx.msgs[0];
-    const parsed = JSON.parse(msg.msg);
+    const msg = tx.msgs![0];
+    const parsed = JSON.parse(msg.msg!);
     const msgs : MsgExecuteContractEncodeObject[] = [{
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: {
@@ -557,11 +558,11 @@ export const executeRouteCosmwasm = async (
     );
 
     console.log('tx', txres);
-    const chainID = tx.chainID;
+    const chainId = tx.chainId;
     const txHash = txres.transactionHash;
     
-    const track = await skip.trackTransaction({
-        chainID,
+    const track = await trackTransaction({
+        chainId,
         txHash
     }) 
     console.log('track', track);
@@ -573,7 +574,7 @@ export const executeRouteCosmwasm = async (
             inAmount: formatValue(values.inValue, values.inToken),
             inToken: values.inToken,
 
-            chainID,
+            chainId,
             txHash,
 
             outAmount: formatValue(values.outValue, values.outToken),
@@ -588,8 +589,8 @@ export const executeRouteCosmwasm = async (
 
     return {
         txHash: txres.transactionHash,
-        promise: skip.waitForTransaction({
-            chainID: NEUTRON_ID,
+        promise: waitForTransaction({
+            chainId: NEUTRON_ID,
             txHash: txres.transactionHash,
         }),
     }
@@ -598,8 +599,7 @@ export const executeRouteCosmwasm = async (
 
 
 
-export const executeRoute = (
-    client: SkipClient,
+export const executeRouteOwn = (
     txs: Tx[],
     route: RouteResponse,
     values: RouteValues,
@@ -613,19 +613,21 @@ export const executeRoute = (
     // return a promise with { txHash, promise }
     
     return new Promise<{ txHash: string, promise: Promise<any>}>(resolve => {
-        
-        const promise = client.executeTxs({
+
+        const promise = executeRoute({
             txs, 
             route,
             userAddresses: values.userAddresses,
-    
-            onTransactionCompleted: async (chainID, txHash, txStatus) => {
-                console.log(`Route completed status on chainID ${chainID}:`, txStatus);
+            
+            // @ts-ignore
+            onTransactionCompleted: async (chainId, txHash, txStatus) => {
+                console.log(`Route completed status on chainId ${chainId}:`, txStatus);
                 updateBridgeTask(txHash, { txStatus });
-                updateAccounts(cosmosClient, values.userAddresses.find((addr) => addr.chainID === chainID)!.address);
+                updateAccounts(cosmosClient, values.userAddresses.find((addr) => addr.chainId === chainId)!.address);
             },
             
-            onTransactionBroadcast: async ({ txHash, chainID }) => {
+            // @ts-ignore
+            onTransactionBroadcast: async ({ txHash, chainId }) => {
                 console.log(`Transaction broadcasted with tx hash: ${txHash}`);
     
                 bridgeTasks.update(tasks => {
@@ -634,7 +636,7 @@ export const executeRoute = (
                         inAmount: formatValue(values.inValue, values.inToken),
                         inToken: values.inToken,
     
-                        chainID,
+                        chainId,
                         txHash,
     
                         outAddress: accCreation ? NEUTRON_REGISTRY : get(foundAccountInfo)?.address,
@@ -649,12 +651,13 @@ export const executeRoute = (
 
                 resolve({ txHash, promise });
             },
+            // @ts-ignore
             onTransactionTracked: async ({ txHash, explorerLink }) => {
                 console.log(`Transaction tracked with tx hash: ${txHash}`);
                 updateBridgeTask(txHash, { explorerLink });
             }
             
-        }).catch((error) => {
+        }).catch((error : any) => {
             console.error('Error executing route:', error);
             // Handle error
         }); 
@@ -673,9 +676,9 @@ export const parseCosmosActions = (
 
     const actions : AccountAction[] = [];
 
-    const parsed = camelizeObject(JSON.parse(multiChainMsg.msg));
+    const parsed = camelizeObject(JSON.parse(multiChainMsg.msg!));
 
-    if (multiChainMsg.msgTypeURL == MsgTransfer.typeUrl) {
+    if (multiChainMsg.msgTypeUrl == MsgTransfer.typeUrl) {
       const tr : MsgTransfer = MsgTransfer.fromJSON(parsed)
 
       const ibc : NeutronMsg = {
@@ -699,7 +702,7 @@ export const parseCosmosActions = (
       }
       actions.push({ execute: { msgs: [ibc] } });
 
-    } else if (multiChainMsg.msgTypeURL == MsgExecuteContract.typeUrl) {
+    } else if (multiChainMsg.msgTypeUrl == MsgExecuteContract.typeUrl) {
 
       const msg : CosmosMsg = {
         wasm: {
@@ -711,8 +714,8 @@ export const parseCosmosActions = (
         }
       }
       actions.push({ execute: { msgs: [msg] } });
-    
-    } else if (multiChainMsg.msgTypeURL == MsgSend.typeUrl) {
+
+    } else if (multiChainMsg.msgTypeUrl == MsgSend.typeUrl) {
       const msg : CosmosMsg = {
         bank: {
           send: {
@@ -723,7 +726,7 @@ export const parseCosmosActions = (
       }
       actions.push({ execute: { msgs: [msg] } });
     } else {
-      console.error('Unknown msg type', multiChainMsg.msgTypeURL);
+      console.error('Unknown msg type', multiChainMsg.msgTypeUrl);
       
     }
 
@@ -739,7 +742,7 @@ export const calculateCosmosTxs = async (
     returnDirect: boolean = false
 ) => {
     
-    const { multiChainMsg } = direct.msgs[0] as { multiChainMsg: MultiChainMsg };
+    const { multiChainMsg } = direct.msgs![0] as { multiChainMsg: MultiChainMsg };
 
     const actions : AccountAction[] = parseCosmosActions(multiChainMsg, account);
 
@@ -754,16 +757,16 @@ export const calculateCosmosTxs = async (
 
 
     const cosmosTx : CosmosTx = {
-      chainID: NEUTRON_ID,
+      chainId: NEUTRON_ID,
       signerAddress: address,
       path: multiChainMsg.path,
       msgs: [{
         msg: JSON.stringify(wasmMsg.value),
-        msgTypeURL: wasmMsg.typeUrl,
+        msgTypeUrl: wasmMsg.typeUrl,
       }]
     }
 
-    const txs = [{ cosmosTx, operationsIndices: direct.txs[0].operationsIndices }]
+    const txs = [{ cosmosTx, operationsIndices: direct.txs![0].operationsIndices }]
 
     return returnDirect ? { ...direct, txs } : txs
 }
@@ -775,7 +778,7 @@ export const calculateCosmosTxs = async (
 
 export const updateBridgeFee = (
     values              : RouteValues,
-    fees                : EstimatedFee[],
+    fees                : any[],
     creationFeeCoin?    : FullCoin
 ) => {
     const token = values.inToken;
@@ -816,7 +819,7 @@ export const updateGasFee = async (
     values: RouteValues,
     tx: Tx,
     address: string,
-    chainID: string,
+    chainId: string,
     relayer? : SigningCosmWasmClient,
     creationFeeCoin?  : FullCoin
 ) => {
@@ -825,20 +828,20 @@ export const updateGasFee = async (
     values.gasValue = "";
     values.gasUSD = "0";
 
-    values.gasToken = chainID == BASE_ID ? BASE_ETH : NTRN;
+    values.gasToken = chainId == BASE_ID ? BASE_ETH : NTRN;
 
     if ('evmTx' in tx) {
         const evmTx = tx.evmTx;
-        const client = await getEthClient(chainID);
+        const client = await getEthClient(chainId);
 
         const gas = await estimateGas(client, {
             to: evmTx.to as `0x${string}`,
             data: `0x${evmTx.data}`,
             account: address as `0x${string}`,
-            value: BigInt(evmTx.value),
+            value: BigInt(evmTx.value!),
         })
 
-        const gasPrice = await getEthGasPrice(client, chainID)
+        const gasPrice = await getEthGasPrice(client, chainId)
         const fee = gas * BigInt(gasPrice);
         const hum = parseFloat(formatUnits(fee, 18));
 
@@ -851,8 +854,8 @@ export const updateGasFee = async (
         const cosmosTx = tx.cosmosTx;
 
         if (relayer) {
-            const msg = cosmosTx.msgs[0];
-            const parsed = JSON.parse(msg.msg); 
+            const msg = cosmosTx.msgs![0];
+            const parsed = JSON.parse(msg.msg!); 
 
             const value = MsgExecuteContract.fromPartial({
                 contract: parsed.contract,
@@ -862,9 +865,9 @@ export const updateGasFee = async (
             })
             
             const simulated = await relayer.simulate(
-                cosmosTx.signerAddress,
+                cosmosTx.signerAddress!,
                 [{
-                    typeUrl: msg.msgTypeURL,
+                    typeUrl: msg.msgTypeUrl!    ,
                     value
                 }],
                 ""
@@ -895,7 +898,7 @@ export const updateGasFee = async (
 }
 
 
-const completeStates: StatusState[] = [
+const completeStates: string[] = [
     "STATE_ABANDONED",
     "STATE_COMPLETED",
     "STATE_COMPLETED_ERROR",
@@ -903,7 +906,7 @@ const completeStates: StatusState[] = [
     "STATE_PENDING_ERROR"
 ]
 export const isTaskCompleted = (status: TxStatusResponse) => {
-    return completeStates.includes(status.status);
+    return completeStates.includes(status.status!);
 }
 
 
@@ -925,9 +928,9 @@ export const viewTxAction = (
 
 
 export const processBridgeTasks = async (
-    client: SkipClient,
+    client: any,
     tasks: BridgeTask[],
-    toastStore: ToastStore
+    toaster: Toaster
 ) => {
     console.log('processing bridge tasks', tasks);
     const leftTasks : BridgeTask[] = [] 
@@ -936,7 +939,7 @@ export const processBridgeTasks = async (
             // @ts-ignore
             const txHash = task.txHash ?? task.txId;
             const txStatus = await client.transactionStatus({
-                chainID: task.chainID ?? task.inToken.originalChain,
+                chainId: task.chainId ?? task.inToken.originalChain,
                 txHash
             });
             console.log('status', txStatus);
@@ -947,9 +950,9 @@ export const processBridgeTasks = async (
             if (txStatus.status == "STATE_COMPLETED" || 
                 txStatus.status == "STATE_COMPLETED_SUCCESS"
             ) {
-                toastStore.trigger({
-                    message: 'Success brdging ' + task.inAmount + ' ' + task.inToken.symbol,
-                    action
+                toaster.success({
+                    title: 'Success bridging ' + task.inAmount + ' ' + task.inToken.symbol,
+                    description: txHash,
                 })
             } else if (
                 txStatus.status == "STATE_COMPLETED_ERROR" ||
@@ -957,23 +960,14 @@ export const processBridgeTasks = async (
             ) {
                 console.error('Error in transaction status:', txStatus.error);
 
-                toastStore.trigger({
-                    message: 'Error bridging ' + task.inAmount + ' ' + task.inToken.symbol,
-                    action: {
-                        label: 'Message',
-                        response: () => {
-                            toastStore.trigger({
-                                message: txStatus.error?.message || 'Unknown error',
-                                timeout: 5000,
-                                action
-                            })
-                        }
-                    }
+                toaster.error({
+                    title: 'Error bridging ' + task.inAmount + ' ' + task.inToken.symbol,
+                    description: txStatus.error?.message || 'Unknown error',
                 })
             } else {
-                toastStore.trigger({
-                    message: task.inAmount + ' ' + task.inToken.symbol + ' bridging in progress',
-                    action: viewTxAction(txHash, task.explorerLink, false)
+                toaster.info({
+                    title: task.inAmount + ' ' + task.inToken.symbol + ' bridging in progress',
+                    description: txHash,
                 })
                 leftTasks.push(task);
             }

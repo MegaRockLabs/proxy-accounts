@@ -1,4 +1,4 @@
-import { type PopupSettings } from "@skeletonlabs/skeleton"
+import { type PopupSettings } from "@skeletonlabs/skeleton-svelte"
 import { type TooltipArgs, tooltip, tooltipValue } from "./action"
 
 

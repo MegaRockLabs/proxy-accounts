@@ -1,44 +1,37 @@
 // toastUtils.ts
-import type { ToastSettings, ToastStore } from '@skeletonlabs/skeleton';
+import { createToaster } from '@skeletonlabs/skeleton-svelte';
+
+type Toaster = ReturnType<typeof createToaster>;
 
 export function toastTransaction(
-    toastStore: ToastStore, 
+    toaster: Toaster, 
     pendingMessage: string, 
     successMessage: string, 
     transaction: Promise<any>,
-    successSettings: Partial<ToastSettings> = {},
-    pendingSettings: Partial<ToastSettings> = {}
+    successSettings: any = {},
+    pendingSettings: any = {}
 ): void {
     // Trigger the pending transaction toast
-    const pendingToast: ToastSettings = {
-        message: pendingMessage,
-        autohide: false,
+    toaster.info({
+        title: pendingMessage,
+        description: 'Processing...',
         ...pendingSettings
-    };
-    toastStore.trigger(pendingToast);
+    });
 
     transaction
         .then(() => {
-            toastStore.clear();
-            const successToast: ToastSettings = {
-                message: successMessage,
-                timeout: 5000,
-                autohide: true,
-                hoverable: true,
-                hideDismiss: true,
+            toaster.dismiss();
+            toaster.success({
+                title: successMessage,
                 ...successSettings
-            };
-            toastStore.trigger(successToast);
+            });
         })
-        .catch(err => {
-            toastStore.clear();
+        .catch((err: Error) => {
+            toaster.dismiss();
             console.warn("Transaction error:", err);
-            // Optionally, trigger a toast for the error case
-            const errorToast: ToastSettings = {
-                message: `Transaction failed: ${err.message}`,
-                timeout: 5000,
-                hoverable: true,
-            };
-            toastStore.trigger(errorToast);
+            toaster.error({
+                title: 'Transaction failed',
+                description: err.message,
+            });
         });
 }

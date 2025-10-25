@@ -1,8 +1,5 @@
 import { join } from 'path'
 import type { Config } from 'tailwindcss'
-import { skeleton } from '@skeletonlabs/tw-plugin';
-import { proxy } from './src/proxy'
-import { base } from './consts.mjs'
 
 export default {
 	darkMode: 'class',
@@ -20,18 +17,8 @@ export default {
 			'4xl': ['3.815rem', '3.815rem'],
 		  },
 		extend: {
-			backgroundImage: {
-				magic: `url('${base}/bg.jpg')`,
-			}
+			// Note: backgroundImage extension doesn't work in Tailwind v4
+			// Use @utility in CSS instead (see app.css)
 		},
-	},
-	plugins: [
-		skeleton({
-			themes: {
-				custom: [
-					proxy,
-				],
-			},
-		}),
-	],
+	}
 } satisfies Config;

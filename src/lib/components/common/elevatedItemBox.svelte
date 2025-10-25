@@ -1,15 +1,26 @@
 <script lang="ts">
-    export let styles : string = '';
-    export let onClick : (_ : any) => void = () => {};
-    export let disabled : boolean = false;
-    export let selected : boolean = false;
-    $: selectedStyles = selected ? 'border-2' : '';
+    interface Props {
+        styles?: string;
+        onClick?: (_ : any) => void;
+        disabled?: boolean;
+        selected?: boolean;
+        children?: import('svelte').Snippet;
+    }
+
+    let {
+        styles = '',
+        onClick = () => {},
+        disabled = false,
+        selected = false,
+        children
+    }: Props = $props();
+    let selectedStyles = $derived(selected ? 'border-2' : '');
 </script>
 
 <button 
-    on:click={onClick} 
+    onclick={onClick} 
     {disabled}
-    class="btn rounded-container-token bg-glass bg-glass-shadow text-sm {selectedStyles} {styles}"
+    class="btn rounded-container bg-glass bg-glass-shadow text-sm {selectedStyles} {styles}"
 >
-    <slot />
+    {@render children?.()}
 </button>

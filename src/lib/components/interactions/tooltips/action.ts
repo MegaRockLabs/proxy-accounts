@@ -1,4 +1,4 @@
-import { popup, type PopupSettings } from "@skeletonlabs/skeleton"
+import { type PopupSettings } from "@skeletonlabs/skeleton-svelte"
 import type { Action } from "svelte/action"
 import { writable } from "svelte/store"
 

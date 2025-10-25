@@ -1,10 +1,10 @@
-import { localStorageStore } from "@skeletonlabs/skeleton";
 import { GECKO_API } from "./vars";
 import { get } from "svelte/store";
-import type { SkipClient } from "@skip-go/client";
+import { getRecommendedGasPrice } from "@skip-go/client";
 import type { GasPrice } from "@cosmjs/stargate";
 import { getGasPrice } from "viem/actions";
 import type { Client } from "viem";
+import { localStorageStore } from "./storage";
 
 const FRESHNESS_THRESHOLD = 1000 * 60 * 5; // 5 minutes
 
@@ -13,8 +13,8 @@ type Info = {
     lastUpdated: number;
 }
 
-export const priceDataStore = localStorageStore("priceData", {} as Record<string, Info>);
-
+const infoStore : Record<string, Info> = {};
+export const priceDataStore = localStorageStore("priceData", infoStore);
 
 export const getPrice = async (name: string) : Promise<number> => {
 
@@ -66,9 +66,10 @@ export const getEthGasPrice = async (client: Client, chainID? : number | string)
 }
 
 
-export const getCosmosGasPrice = async (skip: SkipClient, chainID: string) : Promise<GasPrice | undefined> => {
-    const price = await skip.getRecommendedGasPrice(chainID);
-    console.log("Gas price of chainID", chainID, "is: ", price);
+export const getCosmosGasPrice = async (chainId: string) : Promise<GasPrice | undefined> => {
+    const price = await getRecommendedGasPrice({ chainId });
+    console.log("Gas price of chainID", chainId, "is: ", price);
+    // @ts-ignore
     return price;
 }
     

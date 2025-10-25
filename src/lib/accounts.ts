@@ -6,7 +6,6 @@ import { accountBalances, coinsToBalances } from "./assets";
 import { get, writable } from "svelte/store";
 import type { AccountAction, CosmosClient, FullInfo, ParsedAccountInfo } from "./types";
 import { getAccountInfo } from "./registry";
-import { localStorageStore } from "@skeletonlabs/skeleton";
 import { NEUTRON_ACCOUNT_ID, NEUTRON_ID, NEUTRON_REGISTRY } from "./vars";
 import { coins, type StdFee } from "@cosmjs/stargate";
 import type { CredentialData } from "smart-account-auth";
@@ -14,7 +13,7 @@ import { toBinary, type MsgExecuteContractEncodeObject, type SigningCosmWasmClie
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { getEVMSigner, relayingAddress } from "./signers";
 import { updateFeeGrants } from "./cosmos";
-
+import { localStorageStore } from "./storage";
 
 
 export const foundAccountInfo = localStorageStore<ParsedAccountInfo | undefined>("foundAccountInfo", undefined);

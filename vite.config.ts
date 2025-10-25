@@ -1,15 +1,8 @@
-import { purgeCss } from 'vite-plugin-tailwind-purgecss';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
-
-export default defineConfig({
-	plugins: [
-		nodePolyfills({ 
-			protocolImports: true,
-		}),
-		sveltekit(), 
-		purgeCss(), 
-	]
+export default defineConfig({ 
+    plugins: [sveltekit(), tailwindcss()], 
+    resolve: { alias: { 'use-sync-external-store/shim/index.js': 'react' }} 
 });

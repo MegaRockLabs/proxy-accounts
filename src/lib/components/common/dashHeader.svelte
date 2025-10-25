@@ -1,17 +1,25 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import CopyButton from "$lib/components/common/copyButton.svelte";
     import { foundAccountInfo } from "$lib/accounts";
     
-    let justClicked = false;
+    let justClicked = $state(false);
 
-    export let header = "Balances";
-    
-    $: hasAccount = Boolean($foundAccountInfo);
-    $: address = hasAccount ? $foundAccountInfo!.address : "";
-
-    $: if (justClicked) {
-        setTimeout(() => justClicked = false, 1000);
+    interface Props {
+        header?: string;
     }
+
+    let { header = "Balances" }: Props = $props();
+    
+    let hasAccount = $derived(Boolean($foundAccountInfo));
+    let address = $derived(hasAccount ? $foundAccountInfo!.address : "");
+
+    run(() => {
+        if (justClicked) {
+            setTimeout(() => justClicked = false, 1000);
+        }
+    });
 
     
 </script>
@@ -21,7 +29,7 @@
 
     <h1 class="text-lg md:text-2xl font-bold">{header}</h1>
 
-    { #if address }
+    {#if address}
         <CopyButton {address} />
     { /if }
 
