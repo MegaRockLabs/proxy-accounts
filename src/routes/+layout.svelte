@@ -7,7 +7,6 @@
 
 	
     import { onMount } from 'svelte';
-    import { modalRegistry } from '$lib/components/modals/registry';
   	import { skipClient } from '$lib/clients';
   	import { processBridgeTasks } from '$lib/routes';
 	interface Props {

@@ -10,9 +10,10 @@
   import { accountBalances } from '$lib//assets';
   import { appKit } from '$lib/appkit';
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
-  import CreateAccount from '$lib/components/modals/createAccount.svelte';
-  import Deposit from '$lib/components/modals/deposit.svelte';
-  import Withdraw from '$lib/components/modals/withdraw.svelte';
+  import CreateNew from '$lib/components/modals/createNew.svelte';
+  
+  // import Deposit from '$lib/components/modals/deposit.svelte';
+  // import Withdraw from '$lib/components/modals/withdraw.svelte';
 
   // Dialog state management
   let showCreateAccount = $state(false);
@@ -116,22 +117,10 @@
 
   <Separator size={5} />
 
-
-
-
 </Container>
 
 <!-- Create Account Dialog -->
-<Dialog open={showCreateAccount} onOpenChange={(e) => showCreateAccount = e.open}>
-  <Portal>
-    <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
-    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
-      <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
-        <CreateAccount />
-      </Dialog.Content>
-    </Dialog.Positioner>
-  </Portal>
-</Dialog>
+<CreateNew bind:open={showCreateAccount} onOpenChange={(open) => showCreateAccount = open} />
 
 <!-- Deposit Dialog -->
 <Dialog open={showDeposit} onOpenChange={(e) => showDeposit = e.open}>
@@ -139,7 +128,7 @@
     <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
       <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
-        <Deposit />
+       <!--  <Deposit /> -->
       </Dialog.Content>
     </Dialog.Positioner>
   </Portal>
@@ -151,7 +140,7 @@
     <Dialog.Backdrop class="fixed inset-0 z-50 backdrop-blur-xl bg-surface-50-950/50" />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-center items-center">
       <Dialog.Content class="card bg-surface-100-900 w-full max-w-2xl p-6 space-y-4 shadow-xl">
-        <Withdraw />
+      <!--   <Withdraw />  -->
       </Dialog.Content>
     </Dialog.Positioner>
   </Portal>
