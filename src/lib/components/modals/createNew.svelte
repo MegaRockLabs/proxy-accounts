@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fromHex, toBase64, toUtf8 } from '@cosmjs/encoding';
-  import { Dialog, Portal, Popover, Progress } from "@skeletonlabs/skeleton-svelte";
+  import { Dialog, Portal, Progress } from "@skeletonlabs/skeleton-svelte";
   import { untrack } from 'svelte';
   import { messagesDirect } from '@skip-go/client';
   import { signMessage } from '@wagmi/core';
@@ -9,7 +9,6 @@
   import type { CredentialData } from 'smart-account-auth';
   import { 
     getPasskeyCredential,
-    registerPasskey,
     loadPasskeyById,
     type PasskeyInfo,
     urlToBase64,
@@ -57,7 +56,6 @@
   let credentials = $state<any[]>([]); 
   let registered = $state<PasskeyInfo | undefined>(undefined);
   let createMsg = $state<any>();
-  let showPasskeyMenu = $state(false);
 
   const message = JSON.stringify({
     chain_id: NEUTRON_ID,
@@ -74,7 +72,7 @@
   async function simulateCreation(values?: RouteValues) {
     values ??= $routeValues;
     const fee = $accountCreationFees.find(fee => fee.denom === NEUTRON_DENOM);
-    if (!values || !fee || !$directRes) return;
+    if (!values || !fee || !createMsg) return;
 
     const encoded = MsgExecuteContract.fromPartial({
       contract: NEUTRON_REGISTRY,
@@ -168,6 +166,25 @@
     );
 
     controlAddress = account;
+
+    // Simulate creation with arbitrary funds
+    try {
+      const arbitraryValues: RouteValues = {
+        ...$routeValues,
+        inToken: $inToken!,
+        outToken: NTRN,
+        inValue: 1,
+        inParsed: BigInt(1000000),
+        outValue: 1,
+        outUSD: "1.00",
+        routeSecs: 0,
+        estimatedFees: []
+      } as RouteValues;
+      
+      await simulateCreation(arbitraryValues);
+    } catch (e) {
+      console.error('Error simulating creation', e);
+    }
   };
 
   const proceedToSwap = () => {
@@ -244,26 +261,6 @@
     loading = false;
   };
 
-  const clickRegisterPasskey = async () => {
-    showPasskeyMenu = false;
-    loading = true;
-    
-    try {
-      const passkeyPromise = registerPasskey("Proxy Account Passkey", message); 
-      toaster.promise(passkeyPromise, {
-        loading: { title: "Creating Passkey" },
-        success: { title: "Passkey Created" },
-        error: { title: "Error", description: "Error creating passkey" }
-      });
-      registered = await passkeyPromise;
-    } catch (e) {
-      console.error('Error creating passkey', e);
-      toaster.error({ title: "Error creating passkey" });
-    } finally {
-      loading = false;
-    }
-  };
-
   const clickAddPassKey = async () => {
     loading = true;
 
@@ -299,6 +296,25 @@
         { denom: feeCoin.denom, amount: feeCoin.amount },
         accountData,
       );
+
+      // Simulate creation with arbitrary funds
+      try {
+        const arbitraryValues: RouteValues = {
+          ...$routeValues,
+          inToken: $inToken!,
+          outToken: NTRN,
+          inValue: 1,
+          inParsed: BigInt(1000000),
+          outValue: 1,
+          outUSD: "1.00",
+          routeSecs: 0,
+          estimatedFees: []
+        } as RouteValues;
+        
+        simulateCreation(arbitraryValues);
+      } catch (e) {
+        console.error('Error simulating creation', e);
+      }
     })
     .catch((e) => {
       console.error('Error creating passkey credential', e);
@@ -356,38 +372,36 @@
   }}
 >
   <Portal>
-    <Dialog.Backdrop class="fixed inset-0 bg-black/50 z-40" />
+    <Dialog.Backdrop class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" />
     <Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <Dialog.Content class="relative bg-surface-900 rounded-container-token shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <Dialog.Content class="relative bg-surface-900 border border-surface-700 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         
-        <GhostBox styles="w-full px-5 pt-3">
-          <ElevatedBox>
-            <div class="flex justify-between items-center">
-              <Dialog.Title>
-                <h3 class="h3 font-bold my-2">
-                  {#if step === 1}
-                    Setup Credentials
-                  {:else}
-                    Create Account & Deposit
-                  {/if}
-                </h3>
-              </Dialog.Title>
-              <Dialog.CloseTrigger class="btn btn-sm">
-                <span class="material-icons text-sm">close</span>
-              </Dialog.CloseTrigger>
-            </div>
-          </ElevatedBox>
+        <!-- Header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-surface-700">
+          <Dialog.Title class="text-xl font-semibold">
+            {#if step === 1}
+              Setup Credentials
+            {:else}
+              Create Account & Deposit
+            {/if}
+          </Dialog.Title>
+          <Dialog.CloseTrigger class="hover:bg-surface-800 rounded-md p-1.5 transition-colors">
+            <span class="material-icons text-lg">close</span>
+          </Dialog.CloseTrigger>
+        </div>
 
+        <!-- Content -->
+        <div class="overflow-y-auto flex-1">
           {#if step === 1}
             <!-- STEP 1: Credentials Screen -->
-            <div class="py-7 pb-3 md:px-3 flex flex-col justify-between gap-5">
-              <div class="text-center mb-4">
-                <p class="text-lg mb-2">Connect your Ethereum wallet to control your account</p>
+            <div class="px-6 py-6 space-y-6">
+              <div class="text-center space-y-2">
+                <p class="text-base text-gray-200">Connect your Ethereum wallet to control your account</p>
                 <p class="text-sm text-gray-400">You can optionally add a passkey for additional security</p>
               </div>
 
               {#if !createMsg}
-                <div class="flex flex-col gap-4 items-center justify-center min-h-[200px]">
+                <div class="flex items-center justify-center py-12">
                   <ElevatedButtonBox 
                     styles="preset-filled-primary-500" 
                     onClick={onClick} 
@@ -402,114 +416,102 @@
                   </ElevatedButtonBox>
                 </div>
               {:else}
-                <div class="border-b border-grey-100 relative py-2 mb-7">
-                  <div class="absolute top-1 sm:top-2 left-2 text-xs">Controlling with</div>
-                  
-                  <div class="pt-5 pb-2 flex flex-col gap-3">
-                    {#each credentials as cred, i (i)}
-                      {#if 'eth_personal_sign' in cred}
-                        <div class="flex w-full justify-between items-center">
-                          <div class="px-2 sm:px-3 md:px-7 text-sm sm:text-md flex items-center gap-2">
-                            <span class="font-semibold text-xs bg-blue-500/20 px-2 py-1 rounded">ETH</span>
-                            {formatAddress(cred.eth_personal_sign.signer, 10)}
-                          </div>
-                          {#if $walletIcon}
-                            <img src={$walletIcon} alt="wallet icon" class="w-6 h-6" />
-                          {/if}
-                        </div>
-                      {:else if 'passkey' in cred}
-                        <div class="flex w-full justify-between items-center">
-                          <div class="px-2 sm:px-3 md:px-7 text-sm sm:text-md flex items-center gap-2">
-                            <span class="font-semibold text-xs bg-green-500/20 px-2 py-1 rounded">KEY</span>
-                            <span>Passkey Authentication</span>
-                            {#if cred.passkey.user_handle}
-                              <span class="text-xs text-gray-400">({cred.passkey.user_handle})</span>
+                <div class="space-y-4">
+                  <div class="rounded-lg border border-surface-700 bg-surface-800/50 p-4">
+                    <div class="text-xs text-gray-400 mb-3">Controlling with</div>
+                    
+                    <div class="space-y-3">
+                      {#each credentials as cred, i (i)}
+                        {#if 'eth_personal_sign' in cred}
+                          <div class="flex items-center justify-between p-3 rounded-md bg-surface-900/50 border border-surface-700">
+                            <div class="flex items-center gap-3">
+                              <span class="font-semibold text-xs bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded">ETH</span>
+                              <span class="text-sm font-mono">{formatAddress(cred.eth_personal_sign.signer, 10)}</span>
+                            </div>
+                            {#if $walletIcon}
+                              <img src={$walletIcon} alt="wallet icon" class="w-6 h-6 rounded" />
                             {/if}
                           </div>
-                          <div class="w-6 h-6 flex items-center justify-center">
-                            <span class="material-icons text-green-500 text-lg">fingerprint</span>
+                        {:else if 'passkey' in cred}
+                          <div class="flex items-center justify-between p-3 rounded-md bg-surface-900/50 border border-surface-700">
+                            <div class="flex items-center gap-3">
+                              <span class="font-semibold text-xs bg-green-500/20 text-green-400 px-2.5 py-1 rounded">KEY</span>
+                              <div class="flex items-center gap-2">
+                                <span class="text-sm">Passkey Authentication</span>
+                                {#if cred.passkey.user_handle}
+                                  <span class="text-xs text-gray-400">({cred.passkey.user_handle})</span>
+                                {/if}
+                              </div>
+                            </div>
+                            <div class="w-6 h-6 flex items-center justify-center">
+                              <span class="material-icons text-green-400 text-lg">fingerprint</span>
+                            </div>
                           </div>
+                        {/if}
+                      {/each}
+                      
+                      {#if credentials.length === 1 && credentials.some(c => 'eth_personal_sign' in c)}
+                        <div class="flex justify-center pt-2">
+                          <button 
+                            class="btn btn-sm variant-ghost-surface hover:variant-soft-surface"
+                            disabled={loading}
+                            onclick={clickAddPassKey}
+                          >
+                            <span class="material-icons text-sm mr-1">add</span>
+                            Add Passkey (Optional)
+                          </button>
                         </div>
                       {/if}
-                    {/each}
-                    
-                    {#if credentials.length === 1 && credentials.some(c => 'eth_personal_sign' in c)}
-                      <div class="flex w-full justify-center mt-2 relative">
-                        <Popover
-                          open={showPasskeyMenu}
-                          onOpenChange={(details) => showPasskeyMenu = details.open}
-                        >
-                          <Popover.Trigger class="btn btn-sm preset-filled-tertiary-500">
-                            <span>+ Add Passkey (Optional)</span>
-                          </Popover.Trigger>
-                          <Portal>
-                            <Popover.Positioner>
-                              <Popover.Content class="bg-surface-800 rounded-container-token shadow-xl p-2 z-[60]">
-                                <button 
-                                  class="btn btn-sm w-full text-left"
-                                  disabled={loading} 
-                                  onclick={clickRegisterPasskey}
-                                >
-                                  Register New
-                                </button>
-                                <button 
-                                  class="btn btn-sm w-full text-left mt-1"
-                                  disabled={loading} 
-                                  onclick={clickAddPassKey}
-                                >
-                                  Use Existing
-                                </button>
-                              </Popover.Content>
-                            </Popover.Positioner>
-                          </Portal>
-                        </Popover>
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-
-                <div class="flex justify-end items-center px-2 my-3">
-                  <div class="flex gap-5">
-                    <Dialog.CloseTrigger>
-                      <ElevatedButtonBox selected small={false}>Cancel</ElevatedButtonBox>
-                    </Dialog.CloseTrigger>
-
-                    <ElevatedButtonBox 
-                      styles="preset-filled-primary-500" 
-                      onClick={proceedToSwap} 
-                      disabled={loading || credentials.length === 0} 
-                      small={false}
-                    >
-                      Continue to Deposit
-                    </ElevatedButtonBox>
+                    </div>
                   </div>
                 </div>
               {/if}
 
               {#if error}
-                <div class="text-error-500 text-sm text-center">{error}</div>
+                <div class="rounded-lg border border-error-500/20 bg-error-500/10 px-4 py-3 text-sm text-error-400">
+                  {error}
+                </div>
               {/if}
             </div>
+
+            <!-- Footer -->
+            {#if createMsg}
+              <div class="px-6 py-4 border-t border-surface-700 bg-surface-900/50">
+                <div class="flex justify-end gap-3">
+                  <Dialog.CloseTrigger>
+                    <ElevatedButtonBox selected small={false}>Cancel</ElevatedButtonBox>
+                  </Dialog.CloseTrigger>
+
+                  <ElevatedButtonBox 
+                    styles="preset-filled-primary-500" 
+                    onClick={proceedToSwap} 
+                    disabled={loading || credentials.length === 0} 
+                    small={false}
+                  >
+                    Continue to Deposit
+                  </ElevatedButtonBox>
+                </div>
+              </div>
+            {/if}
 
           {:else}
             <!-- STEP 2: Swap/Deposit Screen -->
             {#if $inToken && $routeValues}
               {@const { outUSD, outValue } = $routeValues}
               
-              <div class="py-7 pb-3 md:px-3 flex flex-col justify-between gap-5">
-
+              <div class="px-6 py-6 space-y-6">
                 <InTokenInput disabled={loading} tokens={inTokens} />
 
-                <div class="relative">
-                  <label class="absolute top-1 left-2 label text-xs text-gray-200" for="receive">Receive</label>
-                  <div class="flex w-full justify-between items-stretch gap-3">
-                    <div class="border-b border-grey-100 text-lg py-5 px-1 sm:px-7 w-full flex gap-3 relative sm:py-7">
-                      {#if outUSD && outUSD != "0.00"}
-                        <span class="absolute bottom-1 left-3 sm:left-7 label text-xs text-gray-200">( ${outUSD} )</span>
-                      {/if}
-                      <span>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-2" for="receive">Receive</label>
+                  <div class="flex items-stretch gap-3">
+                    <div class="flex-1 rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-4 relative">
+                      <div class="text-lg font-medium">
                         {outValue ? outValue.toFixed(4) : "឴"}
-                      </span>
+                      </div>
+                      {#if outUSD && outUSD != "0.00"}
+                        <div class="text-xs text-gray-400 mt-1">${outUSD}</div>
+                      {/if}
                     </div>
                     <OutTokenButton disabled={true} token={NTRN} tokens={[NTRN]} />
                   </div>
@@ -517,36 +519,43 @@
 
                 <Calculated {error} creating={true} />
                 
-                <div class="flex justify-end items-center px-2 my-3">
-                  <div class="flex gap-5">
-                    <ElevatedButtonBox 
-                      onClick={() => step = 1} 
-                      disabled={loading} 
-                      small={false}
-                    >
-                      Back
-                    </ElevatedButtonBox>
-
-                    <ElevatedButtonBox 
-                      styles="preset-filled-primary-500" 
-                      onClick={onClick} 
-                      disabled={loading} 
-                      small={false}
-                    >
-                      {#if loading}
-                        <Progress value={undefined} class="w-6" />
-                      {:else if $directRes}
-                        Create
-                      {:else}
-                        Calculate Route
-                      {/if}
-                    </ElevatedButtonBox>
+                {#if error}
+                  <div class="rounded-lg border border-error-500/20 bg-error-500/10 px-4 py-3 text-sm text-error-400">
+                    {error}
                   </div>
+                {/if}
+              </div>
+
+              <!-- Footer -->
+              <div class="px-6 py-4 border-t border-surface-700 bg-surface-900/50">
+                <div class="flex justify-end gap-3">
+                  <ElevatedButtonBox 
+                    onClick={() => step = 1} 
+                    disabled={loading} 
+                    small={false}
+                  >
+                    Back
+                  </ElevatedButtonBox>
+
+                  <ElevatedButtonBox 
+                    styles="preset-filled-primary-500" 
+                    onClick={onClick} 
+                    disabled={loading} 
+                    small={false}
+                  >
+                    {#if loading}
+                      <Progress value={undefined} class="w-6" />
+                    {:else if $directRes}
+                      Create
+                    {:else}
+                      Calculate Route
+                    {/if}
+                  </ElevatedButtonBox>
                 </div>
               </div>
             {/if}
           {/if}
-        </GhostBox>
+        </div>
       </Dialog.Content>
     </Dialog.Positioner>
   </Portal>

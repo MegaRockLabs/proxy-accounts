@@ -21,6 +21,7 @@ import { routeValues } from "./values";
 import { getEthClient } from "./clients";
 import { estimateGas } from "viem/actions";
 import { createToaster } from "@skeletonlabs/skeleton-svelte";
+import { getCosmosSigner, getEvmSigner } from "./signers";
 
 type Toaster = ReturnType<typeof createToaster>;
 
@@ -618,6 +619,9 @@ export const executeRouteOwn = (
             txs, 
             route,
             userAddresses: values.userAddresses,
+
+            getEvmSigner,
+            getCosmosSigner,
             
             // @ts-ignore
             onTransactionCompleted: async (chainId, txHash, txStatus) => {

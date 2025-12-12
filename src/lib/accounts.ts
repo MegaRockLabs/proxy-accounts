@@ -11,7 +11,7 @@ import { coins, type StdFee } from "@cosmjs/stargate";
 import type { CredentialData } from "smart-account-auth";
 import { toBinary, type MsgExecuteContractEncodeObject, type SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { getEVMSigner, relayingAddress } from "./signers";
+import { getEvmSigner, relayingAddress } from "./signers";
 import { updateFeeGrants } from "./cosmos";
 import { localStorageStore } from "./storage";
 
@@ -229,7 +229,7 @@ export const executeAccountActions = async (
         nonce
     }
 
-    const evmSigner = await getEVMSigner("");
+    const evmSigner = await getEvmSigner("");
 
     const account = evmSigner.account!;
 

@@ -18,7 +18,7 @@ import { setClientOptions, setApiOptions } from "@skip-go/client";
 
 
 import { 
-    getCosmosSigner, getEVMSigner, getSVMSigner, 
+    getCosmosSigner, getEvmSigner, getSvmSigner, 
     relayingAddress, relayingSigner, wagmiAdapter, 
     wagmiValue 
 } from "./signers";

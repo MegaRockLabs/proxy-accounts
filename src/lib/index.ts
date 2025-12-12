@@ -83,6 +83,9 @@ export const onMountLogic = async () => {
     initSkipClient();
 
     const client = await getCosmosClient();
+    updateRegistryParams(client);
+
+    
     const found = get(foundAccountInfo)
     if (found) {
         updateAccountBalances(client, found.address);
@@ -97,7 +100,6 @@ export const onMountLogic = async () => {
             onEthAddressFound(get(wagmiAdapter), BASE_ID, client, ethCred.human_id!);
         }
     }
-    updateRegistryParams(client);
 }
 
 

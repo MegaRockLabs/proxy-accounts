@@ -77,7 +77,7 @@ export const getCosmosSigner = async (_chainId: string) : Promise<OfflineAminoSi
 }
 
 
-export const getEVMSigner = async (chainId: string = BASE_ID) : Promise<WalletClient>  => {
+export const getEvmSigner = async (chainId: string = BASE_ID) : Promise<WalletClient>  => {
     const wagmi = wagmiValue ?? get(wagmiAdapter);
     const config = wagmi.wagmiConfig;
     const connector = await getWagmiConnector(wagmi);
@@ -105,7 +105,7 @@ export const getEVMSigner = async (chainId: string = BASE_ID) : Promise<WalletCl
 }
 
 
-export const getSVMSigner = async ()  : Promise<Adapter> => {
+export const getSvmSigner = async ()  : Promise<Adapter> => {
     const solana = solanaValue ?? get(solanaAdapter);
     if (!solana.wallets) throw new Error("No wallets available");
     const provider = solana.wallets![0];
